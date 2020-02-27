@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>10.5. Stride型のアルゴリズム</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch10.html" title="第10章 ヒストグラム" /><link rel="prev" href="ch10s04.html" title="10.4. ストライドとBank Conflict" /><link rel="next" href="ch10s06.html" title="10.6. バンクコンフリクトを緩和する実装例" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch10s04.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch10s06.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_stride型のアルゴリズム"></a>10.5. Stride型のアルゴリズム</h2></div></div></div><p>Stride型のアルゴリズムは前の2つの項目で一通り解説してきました。この項目では実装をしてみたいと思います。</p><p>まずヒストグラム集計のパラメータを以下のように設定します。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+ローカルワークサイズ＝4（ローカルスレッド数、LOCAL_SIZE）
+</li><li class="listitem">
+ワークグループサイズ＝16（共有ローカルメモリの数、WG_SIZE）
+</li><li class="listitem">
+カテゴリ数=256（コードではBIN_SIZE）
+</li></ul></div><p>集計をする元データは、4*16*256=16384とします。</p><p>元データ、共有ローカルメモリ、出力データはint型とします。共有ローカルメモリ（shared_local_memory）は256x4の配列となるため、各ワークグループに割り当てられるメモリの容量は、4KBとなります。16個のワークグループで使うメモリ容量は64KBとなり、検証機となるIntelのHD Graphics 4000で使う容量最大限を使う計算となります。</p><p><strong>HistogramBankStride4kbslm.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.histogram;
+
+import static org.jocl.CL.*;
+
+import java.io.File;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.file.Paths;
+import java.util.Random;
+import java.util.Scanner;
+
+import org.jocl.CL;
+import org.jocl.Pointer;
+import org.jocl.Sizeof;
+import org.jocl.cl_command_queue;
+import org.jocl.cl_context;
+import org.jocl.cl_context_properties;
+import org.jocl.cl_device_id;
+import org.jocl.cl_kernel;
+import org.jocl.cl_mem;
+import org.jocl.cl_platform_id;
+import org.jocl.cl_program;
+
+public class HistogramBankStride4kbslm {
+
+        private static final String KERNEL_PATH = "histogram4.cl";
+        private static final String KERNEL_FUNC = "histogram";
+        private static final int BIN_SIZE = 256;
+        private static final int LOCAL_SIZE = 4;
+        private static final int WG_SIZE = 16;
+        private static final int DATA_SIZE = BIN_SIZE * LOCAL_SIZE * WG_SIZE;
+        private static final int[] data = new int[DATA_SIZE];
+
+    private static cl_context context;
+    private static cl_command_queue queue;
+    private static cl_program program;
+    private static cl_kernel kernel;
+
+        public static void main(String[] args) throws Exception {
+
+                CL.setExceptionsEnabled(true);
+
+                cl_platform_id[] platform = new cl_platform_id[1];
+                cl_device_id[] device = new cl_device_id[1];
+                int[] num_devices = new int[1];
+
+                clGetPlatformIDs(1, platform, null);
+                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, num_devices);
+
+                cl_context_properties props = new cl_context_properties();
+                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
+                context = clCreateContext(props, 1, device, null, null, null);
+
+                queue = clCreateCommandQueue(context, device[0], 0, null);
+
+                StringBuffer sb  = new StringBuffer();
+                URL resource = HistogramBankStride4kbslm.class.getResource(KERNEL_PATH) ;
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                Scanner sc = new Scanner(new File(path));
+                while(sc.hasNext()) {
+                        sb.append(sc.nextLine() + "\n");
+                }
+                sc.close();
+                program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
+                String option = "-Werror -DBIN_SIZE=256";
+                clBuildProgram(program, 0, null, option, null, null);
+
+                cl_mem data_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_uint4 * DATA_SIZE, Pointer.to(data), null);
+
+                cl_mem subHistogram = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR,
+                                Sizeof.cl_uint*BIN_SIZE*WG_SIZE, null, null);
+
+                kernel = clCreateKernel(program, KERNEL_FUNC, null);
+
+                generateSample();
+
+                clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                clSetKernelArg(kernel, 1, Sizeof.cl_uint * LOCAL_SIZE * BIN_SIZE, null);
+                clSetKernelArg(kernel, 2, Sizeof.cl_mem, Pointer.to(subHistogram));
+
+                long[] global_work_size = new long[]{WG_SIZE * LOCAL_SIZE,1,1};
+                long[] local_work_size = new long[]{LOCAL_SIZE,1,1};
+                clEnqueueNDRangeKernel(queue,
+                                kernel, 1,
+                                null,
+                                global_work_size,
+                                local_work_size,
+                                0, null, null);
+
+                ByteBuffer output = clEnqueueMapBuffer(queue,
+                                subHistogram,
+                                CL_TRUE,
+                                CL_MAP_WRITE,
+                                0,
+                                Sizeof.cl_uint*BIN_SIZE*WG_SIZE,
+                                0,
+                                null,
+                                null,
+                                null);
+
+                clEnqueueUnmapMemObject(queue, subHistogram, output, 0, null, null);
+                clFinish(queue);
+
+                int[] outputHistogram = new int[BIN_SIZE*WG_SIZE];
+                int[] result = new int[BIN_SIZE];
+                output.order(ByteOrder.LITTLE_ENDIAN);
+                int i,j;
+                for(i = 0; i &lt; WG_SIZE; ++i) {
+                        for(j = 0; j &lt; BIN_SIZE; ++j) {
+                                outputHistogram[j*WG_SIZE+i] = output.getInt();
+                        }
+                }
+                for(i = 0; i &lt; WG_SIZE; ++i) {
+                        for(j = 0; j &lt; BIN_SIZE; ++j) {
+                                result[j] += outputHistogram[j*WG_SIZE+i];
+                        }
+                }
+                for(i = 0; i &lt; BIN_SIZE; ++i) {
+                        System.out.printf("TOTAL[%d]: %d\n", i, result[i]);
+                }
+
+                clReleaseDevice(device[0]);
+                clReleaseContext(context);
+                clReleaseCommandQueue(queue);
+                clReleaseKernel(kernel);
+                clReleaseProgram(program);
+        }
+
+        private static void generateSample() {
+                //Random rnd = new Random();
+                for(int i = 0; i &lt; DATA_SIZE; i++) {
+                        //data[i] = (byte) (rnd.nextInt(256));
+                        data[i] = (i%128);
+                        //data[i] = 254;
+                }
+
+        }
+
+}</pre><p>
+</p><p><strong>histogram.cl. </strong>
+</p><pre xmlns="" class="prettyprint">#define BIN_SIZE 256
+
+//4KB = 4 threads
+//16 WG
+
+__kernel void histogram(
+                __global uint4* data,
+        __local uint* shared_local_memory,
+        __global uint* buckets) {
+
+        size_t lid = get_local_id(0);
+
+        size_t group_id = get_group_id(0);
+        size_t local_size = get_local_size(0);
+
+        int offset = lid % 2; // 0,1
+        int stride = 2 * offset; // 0,2
+        int bank_number = lid &gt;&gt; 1; // 0,1
+
+        __local uchar4* input = (__local uchar4*) shared_local_memory;
+
+        for(int i = 0; i &lt; BIN_SIZE/4; ++i)
+                input[local_size * i + lid] = 0;
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for(int i = 0; i &lt; BIN_SIZE /4; ++i) {
+
+             uint4 value = data[
+                        group_id * local_size * (BIN_SIZE / 4) + i *
+                        local_size + lid];
+             // (0...15) * 4 * 256 / 4 + (0..63) * 4 + lid
+
+             shared_local_memory[value.s0 * local_size + stride + bank_number]++; // value.s0, s1, s2, s3 is random, may update same position
+             shared_local_memory[value.s1 * local_size + stride + bank_number]++;
+             shared_local_memory[value.s2 * local_size + stride + bank_number]++;
+             shared_local_memory[value.s3 * local_size + stride + bank_number]++;
+
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        if(lid == 0) { // each work-group only has 1 work-item executing this code block
+             for(size_t i = 0; i &lt; BIN_SIZE; i++) {
+               int result = 0;
+               for(size_t j = 0; j &lt; local_size; j++) {
+                 result += shared_local_memory[i * local_size + j];
+                 // [0..255]*4 + 0...3 =&gt; min 0, max 1023
+               }
+               buckets[group_id * BIN_SIZE  + i] = result; // 0..15 * 256 + 0...255
+             }
+        }
+}</pre><p>
+</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10s04.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch10s06.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

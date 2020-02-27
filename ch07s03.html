@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>7.3. HelloWorld（タスク並列プログラミング）</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch07.html" title="第7章 HelloWorldプログラム" /><link rel="prev" href="ch07s02.html" title="7.2. カーネル・ソースファイル（.cl）の読み込み" /><link rel="next" href="ch07s04.html" title="7.4. HelloWorld（データ並列プログラミング）" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch07s02.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch07s04.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_helloworld_タスク並列プログラミング"></a>7.3. HelloWorld（タスク並列プログラミング）</h2></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>タスク並列プログラミングの詳細については「<a class="xref" href="ch01s06.html#task-parallel-model" title="タスク並列プログラミングモデル">「タスク並列プログラミングモデル」</a>」を参照ください。</p></div><p>前の項目から引き継ぎ以下の３つのファイルを使います。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+TaskTest.java
+</li><li class="listitem">
+basic_helloworld.cl
+</li><li class="listitem">
+pom.xml
+</li></ul></div><div class="important" style="margin-left: 0; margin-right: 10%;"><h3 class="title">重要</h3><p>「.cl」拡張子はカーネルのソースコードを指します。</p></div><p><strong>basic_helloworld.cl（カーネルです。）. </strong>
+</p><pre xmlns="" class="prettyprint">__kernel void helloworld(__global int* number, char c) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO13-1"></a>(1)
+{
+        int4 num4 = vload4(0, number + 1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO13-2"></a>(2)
+        float4 fl4 = (float4) (1.0f, 2.0f, 3.0f, 4.0f); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO13-3"></a>(3)
+
+        printf("Hello World! Buddy!\n"); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO13-4"></a>(4)
+        printf("%s\n", "Text literal is output just like this!");
+        printf("input integer is %d\n", number[0]); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO13-5"></a>(5)
+        printf("15 in hex format is %#x\n", 15);
+        printf("num4 vector is %#v4x\n", num4); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO13-6"></a>(6)
+        printf("fl4 vector is %#v4x\n", fl4);
+        printf("input character is %c\n", c); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO13-7"></a>(7)
+}</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO13-1">(1)</a> </p></td><td valign="top" align="left"><p>
+カーネルを宣言。第一引数にグローバル変数のnumber、第二引数にプライベート変数のbow、第三引数にプライベート変数のc。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO13-2">(2)</a> </p></td><td valign="top" align="left"><p>
+配列「number」のポインタをインクリメントした位置から４つのアドレスを、num4にコピー。「グローバル変数からプライベート変数へのロード」が行なわれます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO13-3">(3)</a> </p></td><td valign="top" align="left"><p>
+printfはC言語とほぼ同じように使えます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO13-4">(4)</a> </p></td><td valign="top" align="left"><p>
+「%s」は文字列の表示を指定します。「\n」は改行を指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO13-5">(5)</a> </p></td><td valign="top" align="left"><p>
+「%d」は整数の表示を指定します。「\n」は改行を指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO13-6">(6)</a> </p></td><td valign="top" align="left"><p>
+「%#v4x」は、v4つまり４つの要素からなるベクトルを、0xで始まる16進数型式での表示を指定します。num4にコピーした「number」は添字1から４つの要素ですが、「number」変数の添字５は未定義のため、0が表示されます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO13-7">(7)</a> </p></td><td valign="top" align="left"><p>
+プライベートメモリ内の変数cにアクセスします。
+</p></td></tr></table></div><p><strong>TaskTest.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.task;
+import static org.jocl.CL.*;
+
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.Scanner;
+
+import org.jocl.Pointer;
+import org.jocl.Sizeof;
+import org.jocl.cl_command_queue;
+import org.jocl.cl_context;
+import org.jocl.cl_device_id;
+import org.jocl.cl_kernel;
+import org.jocl.cl_mem;
+import org.jocl.cl_platform_id;
+import org.jocl.cl_program;
+
+public class TaskTest {
+
+        private static final String KERNEL_PATH = "basic_helloworld.cl"; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-1"></a>(1)
+        private static final String FUNC = "helloworld"; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-2"></a>(2)
+
+        private static void print_error(String src_msg, int err)
+        {
+            final String[] err_msg = new String[]{
+                "CL_SUCCESS",
+                "CL_DEVICE_NOT_FOUND",
+                "CL_DEVICE_NOT_AVAILABLE",
+                "CL_COMPILER_NOT_AVAILABLE",
+                "CL_MEM_OBJECT_ALLOCATION_FAILURE",
+                "CL_OUT_OF_RESOURCES",
+                "CL_OUT_OF_HOST_MEMORY",
+                "CL_PROFILING_INFO_NOT_AVAILABLE",
+                "CL_MEM_COPY_OVERLAP",
+                "CL_IMAGE_FORMAT_MISMATCH",
+                "CL_IMAGE_FORMAT_NOT_SUPPORTED",
+                "CL_BUILD_PROGRAM_FAILURE",
+                "CL_MAP_FAILURE",
+                "CL_MISALIGNED_SUB_BUFFER_OFFSET",
+                "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST",
+                "CL_COMPILE_PROGRAM_FAILURE     ",
+                "CL_LINKER_NOT_AVAILABLE",
+                "CL_LINK_PROGRAM_FAILURE",
+                "CL_DEVICE_PARTITION_FAILED",
+                "CL_KERNEL_ARG_INFO_NOT_AVAILABLE",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "CL_INVALID_VALUE",
+                "CL_INVALID_DEVICE_TYPE",
+                "CL_INVALID_PLATFORM",
+                "CL_INVALID_DEVICE",
+                "CL_INVALID_CONTEXT",
+                "CL_INVALID_QUEUE_PROPERTIES",
+                "CL_INVALID_COMMAND_QUEUE",
+                "CL_INVALID_HOST_PTR",
+                "CL_INVALID_MEM_OBJECT",
+                "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR",
+                "CL_INVALID_IMAGE_SIZE",
+                "CL_INVALID_SAMPLER",
+                "CL_INVALID_BINARY",
+                "CL_INVALID_BUILD_OPTIONS",
+                "CL_INVALID_PROGRAM",
+                "CL_INVALID_PROGRAM_EXECUTABLE",
+                "CL_INVALID_KERNEL_NAME",
+                "CL_INVALID_KERNEL_DEFINITION",
+                "CL_INVALID_KERNEL",
+                "CL_INVALID_ARG_INDEX",
+                "CL_INVALID_ARG_VALUE",
+                "CL_INVALID_ARG_SIZE",
+                "CL_INVALID_KERNEL_ARGS",
+                "CL_INVALID_WORK_DIMENSION",
+                "CL_INVALID_WORK_GROUP_SIZE",
+                "CL_INVALID_WORK_ITEM_SIZE",
+                "CL_INVALID_GLOBAL_OFFSET",
+                "CL_INVALID_EVENT_WAIT_LIST",
+                "CL_INVALID_EVENT",
+                "CL_INVALID_OPERATION",
+                "CL_INVALID_GL_OBJECT",
+                "CL_INVALID_BUFFER_SIZE",
+                "CL_INVALID_MIP_LEVEL",
+                "CL_INVALID_GLOBAL_WORK_SIZE",
+                "CL_INVALID_PROPERTY",
+                "CL_INVALID_IMAGE_DESCRIPTOR",
+                "CL_INVALID_COMPILER_OPTIONS",
+                "CL_INVALID_LINKER_OPTIONS",
+                "CL_INVALID_DEVICE_PARTITION_COUNT",
+            };
+
+            int index = -err;
+
+            if (err != CL_SUCCESS) {
+
+                System.out.printf("Failed Message: %s - Error Code: %d\n", src_msg, err, err_msg[index]);
+                System.exit(-1);
+            }
+
+        }
+
+        public static void main(String[] args) throws Exception
+        {
+                int err;
+
+            /* OpenCL APIの変数 */
+                cl_device_id[] device = new cl_device_id[1]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-3"></a>(3)
+                cl_context context; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-4"></a>(4)
+                cl_command_queue queue; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-5"></a>(5)
+                cl_program program; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-6"></a>(6)
+                cl_platform_id[] platform = new cl_platform_id[1]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-7"></a>(7)
+                cl_kernel kernel; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-8"></a>(8)
+
+                /*
+                 * OpenCLデバイスのプラットフォームの特定
+                 * 最初に見つけたプラットフォームを使用します。
+                 * */
+                err = clGetPlatformIDs(1, platform, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-9"></a>(9)
+
+                /*
+                 * CPU/GPUデバイスの情報取得をします。
+                 * */
+                err = clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-10"></a>(10)
+                if(err == CL_DEVICE_NOT_FOUND) {
+                  err = clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_CPU, 1, device, null);
+                }
+
+                /* コンテキストの生成をします。 */
+                context = clCreateContext(null, 1, device, null, null, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-11"></a>(11)
+
+
+                /*
+                 * OpenCL Cのソースコードをファイル（.cl）から
+                 * 読み込みコンパイルします
+                 * */
+
+                /* ファイルを読み込みバッファーに投入します */
+                StringBuffer sb = new StringBuffer();
+                URL resource = TaskTest.class.getResource(KERNEL_PATH);
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                System.out.println(path);
+                Scanner sc = new Scanner(new File(path));
+                while(sc.hasNext()) {
+                        sb.append(sc.nextLine() + "\n");
+                }
+                /* programの生成（ファイルからOpenCL Cソースコードの読み込み） */
+                int[] errPtr = new int[1];
+        program = clCreateProgramWithSource(context,
+                1, new String[]{sb.toString()}, null, errPtr);
+        if(errPtr[0] &lt; 0) {
+                print_error("clCreateProgramWithSource",errPtr[0]);
+        }
+                /* programのビルド（コンパイル）をします。 */
+        err = clBuildProgram(program, 0, null, null, null, null);
+        if(err &lt; 0) {
+                print_error("clBuildProgram",err);
+        }
+
+                /* コマンドキューを生成します */
+                queue = clCreateCommandQueue(context, device[0], 0, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-12"></a>(12)
+
+                int[] myNumber = new int[4]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-13"></a>(13)
+                myNumber[0] = 1;
+                myNumber[1] = 2;
+                myNumber[2] = 3;
+                myNumber[3] = 4;
+
+                char[] c = new char[]{'p'}; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-14"></a>(14)
+
+                cl_mem num_input = clCreateBuffer(context,
+                                CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-15"></a>(15)
+                                Sizeof.cl_int*4, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-16"></a>(16)
+                                Pointer.to(myNumber), //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-17"></a>(17)
+                                null);
+
+            /* Kernelを生成します */
+                kernel = clCreateKernel(program, FUNC, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-18"></a>(18)
+
+                err = 0;
+                err |= clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(num_input)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-19"></a>(19)
+                err |= clSetKernelArg(kernel, 1, Sizeof.cl_char, Pointer.to(c)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-20"></a>(20)
+                if(err &lt; 0){
+                print_error("clSetKernelArg",err);
+                }
+
+            /*
+             * Kernelの実行をします。
+             * */
+                err = clEnqueueTask(queue, kernel, 0, null, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-21"></a>(21)
+                if(err &lt; 0) {
+                print_error("clEnqueueTask",err);
+                }
+
+            clFinish(queue); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-22"></a>(22)
+
+                /* OpenCL APIで割り当てたメモリーを解放します */
+            clReleaseProgram(program); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-23"></a>(23)
+            clReleaseKernel(kernel); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-24"></a>(24)
+            clReleaseCommandQueue(queue); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-25"></a>(25)
+            clReleaseContext(context); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-26"></a>(26)
+            clReleaseMemObject(num_input); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO14-27"></a>(27)
+        }
+}</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-1">(1)</a> </p></td><td valign="top" align="left"><p>
+カーネルのソースファイル名を設定。カーネルとホストコードのソースは同一フォルダにある前提。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-2">(2)</a> </p></td><td valign="top" align="left"><p>
+カーネル関数の名称を設定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-3">(3)</a> </p></td><td valign="top" align="left"><p>
+デバイスオブジェクトを宣言。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-4">(4)</a> </p></td><td valign="top" align="left"><p>
+コンテキストオブジェクトの宣言。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-5">(5)</a> </p></td><td valign="top" align="left"><p>
+コマンドキューオブジェクトの宣言。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-6">(6)</a> </p></td><td valign="top" align="left"><p>
+プログラムオブジェクトの宣言。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-7">(7)</a> </p></td><td valign="top" align="left"><p>
+プラットフォームオブジェクトの宣言。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-8">(8)</a> </p></td><td valign="top" align="left"><p>
+カーネルオブジェクトの宣言。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-9">(9)</a> </p></td><td valign="top" align="left"><p>
+OpenCLデバイスのプラットフォームの特定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-10">(10)</a> </p></td><td valign="top" align="left"><p>
+CL_DEVICE_TYPE_GPUを指定して、GPUデバイスを検索します。取得したデバイスオブジェクトはdeviceオブジェクトを指すポインタに設定されます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-11">(11)</a> </p></td><td valign="top" align="left"><p>
+コンテキストの生成をします。deviceオブジェクトと関連付けます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-12">(12)</a> </p></td><td valign="top" align="left"><p>
+コマンドキューを生成します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-13">(13)</a> </p></td><td valign="top" align="left"><p>
+整数型配列「myNumber」のメモリ空間内の領域を確保します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-14">(14)</a> </p></td><td valign="top" align="left"><p>
+文字型の変数cに'p'を代入します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-15">(15)</a> </p></td><td valign="top" align="left"><p>
+clCreateBufferで（カーネルのグローバル引数として使うため）バッファオブジェクトを生成。「CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR」フラグはメモリを読み込み専用、ホスト内のメモリ領域にあるポインタをデバイスに複製することを指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-16">(16)</a> </p></td><td valign="top" align="left"><p>
+バッファオブジェクトに割り当てるバイトサイズを指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-17">(17)</a> </p></td><td valign="top" align="left"><p>
+ホストポインタを指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-18">(18)</a> </p></td><td valign="top" align="left"><p>
+カーネルオブジェクトを生成します。このカーネルは「FUNC」マクロで指定した「helloworld」関数を呼ぶことができます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-19">(19)</a> </p></td><td valign="top" align="left"><p>
+グローバルメモリを使ってカーネルに引数を渡します。（グローバル領域に割り当てたカーネル引数は常にバッファオブジェクトとして渡します。）
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-20">(20)</a> </p></td><td valign="top" align="left"><p>
+プライベートメモリを使ってカーネルに引数を渡します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-21">(21)</a> </p></td><td valign="top" align="left"><p>
+コマンドキューにカーネルコマンドを挿入します。第２引数で指定したカーネルが、コマンドキューに関連付けられたデバイス上で実行されます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-22">(22)</a> </p></td><td valign="top" align="left"><p>
+先行してコマンドキューに挿入したOpenCLコマンドが終了するまでブロックします。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-23">(23)</a> </p></td><td valign="top" align="left"><p>
+プログラムオブジェクトのメモリ領域を解放します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-24">(24)</a> </p></td><td valign="top" align="left"><p>
+カーネルオブジェクトのメモリ領域を解放します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-25">(25)</a> </p></td><td valign="top" align="left"><p>
+コマンドキューオブジェクトのメモリ領域を解放します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-26">(26)</a> </p></td><td valign="top" align="left"><p>
+コンテキストオブジェクトのメモリ領域を解放します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO14-27">(27)</a> </p></td><td valign="top" align="left"><p>
+バッファオブジェクトのメモリ領域を解放します。
+</p></td></tr></table></div><p>OpenCLでタスク並列プログラミングを指す場合は原則として、clEnqueueTask関数を使ったカーネルコマンドのキューへの挿入を意味し、以下のようにすればカーネルコマンドがデバイス内で発行し実行されます。</p><pre xmlns="" class="prettyprint">err = clEnqueueTask(queue, kernel, 0, null, null);</pre><p>第１引数のqueueはコマンドキューオブジェクト、第2引数のkernelはカーネルオブジェクトです。</p><p>コマンドキューオブジェクトを生成するには、以下のようにコンテキストオブジェクト、デバイスオブジェクトを先行して生成しておく必要があります。</p><pre xmlns="" class="prettyprint">queue = clCreateCommandQueue(
+    context,
+    device[0],
+    0,
+    null);</pre><p>コンテキストオブジェクトを生成するには以下のようにclCreateContext関数の引数としてデバイスオブジェクトが必要となります。</p><pre xmlns="" class="prettyprint">context = clCreateContext(
+    null,
+    1,
+    device,
+    null,
+    null,
+    null);</pre><p>デバイスオブジェクトの生成は、clGetDeviceIDs関数を使いますが、第一引数でプラットフォームオブジェクトが必要となります。</p><pre xmlns="" class="prettyprint">err = clGetDeviceIDs(
+    platform[0],
+    CL_DEVICE_TYPE_GPU,
+    1,
+    device, null);</pre><p>この一連の流れは「図：OpenCL API UMLクラス図」（<a class="xref" href="ch02.html#openclClass" title="図2.1 図：OpenCL API UMLクラス図">図2.1「図：OpenCL API UMLクラス図」</a>）にあるように、プラットフォームからデバイス、コンテキストからコマンドキューやバッファ、カーネルという依存性として理解できます。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_出力"></a>7.3.1. 出力</h3></div></div></div><p>サンプルプログラムによる出力は以下のようになります。</p><pre xmlns="" class="prettyprint">/Users/komatsu/JOCLBook/target/classes/com/book/jocl/task/basic_helloworld.cl
+Hello World! Buddy!
+Text literal is output just like this!
+input integer is 1
+15 in hex format is 0xf
+num4 vector is 0x2,0x3,0x4,0
+fl4 vector is 0x25ad905c,0x25ad9064,0x25ad906c,0x25ad9074
+input character is p</pre></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07s02.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s04.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

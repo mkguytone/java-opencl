@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>4.4. 型の対応</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch04.html" title="第4章 JNI(Java Native Interface)" /><link rel="prev" href="ch04s03.html" title="4.3. ハローワールド (JNI) の続き" /><link rel="next" href="ch05.html" title="第5章 JNA(Java Native Access)" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch04s03.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch05.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_型の対応"></a>4.4. 型の対応</h2></div></div></div><p>JNIからネイティブライブラリにデータを渡す場合に、JNIは型をJavaデータ型をC言語で受け取れる型に変換します。</p><p>例えばcharを「jchar」、Stringを「jstring」という具合にします。対応表は「表：Java型とネイティブ型の対応」（<a class="xref" href="ch04s04.html#jni-native-type" title="表4.1 表：Java型とネイティブ型の対応">表4.1「表：Java型とネイティブ型の対応」</a>）を参照ください。</p><div class="table"><a id="jni-native-type"></a><p class="title"><strong>表4.1 表：Java型とネイティブ型の対応</strong></p><div class="table-contents"><table class="table" summary="表：Java型とネイティブ型の対応" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /><col class="col_2" /><col class="col_3" /></colgroup><tbody><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>Javaデータ型</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>ネイティブ型</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>詳細</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>boolean</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>jboolean</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>8 bit、符号無し</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>byte</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>jbyte</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>8 bit、符号付き</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>char</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>jchar</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>16 bit、符号無し</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>double</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>jdouble</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>64 bit</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>float</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>jfloat</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>32 bit</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>int</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>jint</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>32 bit、符号付き</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>long</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>jlong</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>64 bit、符号付き</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>short</strong></span></p></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>jshort</strong></span></p></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>16 bit、符号付き</strong></span></p></td></tr><tr><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>void</strong></span></p></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><p><span class="strong"><strong>void</strong></span></p></td><td style="" align="left" valign="top"><p><span class="strong"><strong>N/A</strong></span></p></td></tr></tbody></table></div></div><br class="table-break" /><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_jni引数の例"></a>4.4.1. JNI引数の例</h3></div></div></div><p>JNIのコードはシンプルなように見えて複雑です。一例を上げて見ましょう。JNIでアクセスするネイティブ関数に引数を指定するとします。</p><pre xmlns="" class="prettyprint">HelloWorldJNI/
+├── jni
+│   ├── HelloWorld.o
+│   ├── com_book_jni_HelloWorld.c
+│   ├── com_book_jni_HelloWorld.h
+│   └── Makefile
+├── pom.xml
+├── src
+│   ├── main
+│   │   └── java
+│   │       └── com
+│   │           └── book
+│   │               └── jni
+│   │                   └── HelloWorld.java
+│   └── test
+│       └── java
+└── target
+    ├── classes
+    │   ├── com
+    │   │   └── book
+    │   │       └── jni
+    │   │           └── HelloWorld.class
+    │   ├── libhelloworld.dylib
+    │   └── makefile
+    └── test-classes</pre><p>Javaサイドで引数を指定する場合は、通常のメソッドの引数と同じように取り扱います。</p><p><strong>HelloWorld.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jni;
+
+public class HelloWorld {
+
+        static {
+                System.loadLibrary("helloworld");
+        }
+        private native void hello(String name);
+
+        public static void main(String[] args) {
+                HelloWorld hw =new HelloWorld();
+                String name = "Yamada, Taro";
+                hw.hello(name);
+        }
+
+}</pre><p>
+</p><p>では、javahを使ってヘッダーを生成したとします。すると以下のようなヘッダーが出力されます。</p><p><strong>com_book_jni_HelloWorld.h. </strong>
+</p><pre xmlns="" class="prettyprint">#include &lt;jni.h&gt;
+
+JNIEXPORT void JNICALL Java_com_book_jni_HelloName_helloWorld
+  (JNIEnv *, jclass, jstring);</pre><p>
+</p><p>Java_com_book_jni_HelloName_helloWorld関数には、jstringという型が指定されています。</p><pre xmlns="" class="prettyprint">private native void hello(String name);</pre><p>宣言されたhello関数の引数であるnameが、Stringに対応したネイティブ型として表現されています。</p><p>最後にこのname引数を標準出力します。</p><p><strong>com_book_jni_HelloWorld.c. </strong>
+</p><pre xmlns="" class="prettyprint">#include &lt;jni.h&gt;
+#include &lt;stdio.h&gt;
+#include "com_book_jni_HelloWorld.h"
+#include &lt;OpenCL/cl.h&gt;
+
+
+JNIEXPORT void JNICALL Java_com_book_jni_HelloWorld_hello(
+        JNIEnv *env, jobject thisObj, jstring name) {
+
+        const char* str = (*env)-&gt;GetStringUTFChars(env, name, NULL); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO10-1"></a>(1)
+    printf("Hello %s\n", str);
+    (*env)-&gt;ReleaseStringUTFChars(env, name, str); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO10-2"></a>(2)
+}</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO10-1">(1)</a> </p></td><td valign="top" align="left"><p>
+UTF-8エンコードのバイト配列を指すポインタを戻します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO10-2">(2)</a> </p></td><td valign="top" align="left"><p>
+使い終わった文字列のメモリ領域を解放。
+</p></td></tr></table></div><p>GetStringUTFCharsはJavaのUTF文字列をC言語で処理可能な、const charを指すポインタに変換してくれます。</p><p><strong>Makefile. </strong>
+</p><pre xmlns="" class="prettyprint"># クラスパスを定義
+CLASS_PATH = ../target/classes
+
+# binディレクトリ内の.classファイルの仮想パスを定義
+#vpath %.class $(CLASS_PATH)
+
+all : libhelloworld.dylib
+        mv libhelloworld.dylib $(CLASS_PATH)
+
+# .dylib（Max OS X）を出力します。
+# Windowsの場合は、hello.dll、Linuxの場合は libhello.so
+libhelloworld.dylib : HelloWorld.o
+        cc -dynamiclib -o $@ $&lt; -framework JavaVM -framework OpenCL
+
+# 検証環境ではjdk1.8.0_05を使用しています。インクルードパスはjdkバージョンと合わせます。
+HelloWorld.o : com_book_jni_HelloWorld.c
+        cc -c -I/Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/ -I /Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/darwin/ -c $&lt; -o $@
+
+# $* は拡張無しのターゲットファイル名と合わせます。
+header_gen :
+        javah -verbose -classpath $(CLASS_PATH) com.book.jni.HelloWorld
+
+clean :
+        rm com_book_jni_HelloWorld.h HelloWorld.o $(CLASS_PATH)/libhelloworld.dylib</pre><p>
+</p><p>ビルドについては、Makefileのあるディレクトリ「jni」に移動してから、makeコマンドを発行します。</p><pre xmlns="" class="prettyprint">$ cd jni
+$ make all
+cc -c -I/Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/ -I /Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/darwin/ -c com_book_jni_HelloWorld.c -o HelloWorld.o
+cc -dynamiclib -o libhelloworld.dylib HelloWorld.o -framework JavaVM -framework OpenCL
+mv libhelloworld.dylib ../target/classes</pre><p>libhelloworld.dylibは「target/classes」フォルダに移され、シェルもそこに移動します。</p><pre xmlns="" class="prettyprint">$ cd ../target/classes
+$ java com.book.jni.HelloWorld
+Hello Yamada, Taro</pre><p>最後にJavaのクラスファイルを実行すると正常な実行が確認できました。</p></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s03.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

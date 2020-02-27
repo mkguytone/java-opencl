@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>4.2. ビルド</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch04.html" title="第4章 JNI(Java Native Interface)" /><link rel="prev" href="ch04s01.html" title="4.1. JNIの開発環境" /><link rel="next" href="ch04s03.html" title="4.3. ハローワールド (JNI) の続き" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch04s01.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch04s03.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_ビルド"></a>4.2. ビルド</h2></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>JNI では C 言語のコンパイル・ビルドが必要となります。ビルドについては「付録：make」（<a class="xref" href="apc.html" title="付録C Makeツール">付録C <em>Makeツール</em></a>）を参照ください。</p></div><p>以下の Makefile では javah や gcc 等のコマンドを使ったヘッダーの生成や、コンパイル・ビルドを「部分的」に自動化しています。「部分的」にという表現には、手動の要素が残されるからです。</p><p>まず C 言語のヘッダーの自動生成を行うには、「header_gen」という名称のターゲットを実行します。</p><pre xmlns="" class="prettyprint">$ pwd
+/Users/komatsu/JniJnaRepo/HelloJNIPackage/jni
+$ ls
+makefile
+$ make header_gen
+javah -verbose -classpath ../target/classes com.book.jni.HelloJNI
+[Creating file RegularFileObject[com_book_jni_HelloJNI.h]]
+$ ls
+com_book_jni_HelloJNI.h
+makefile</pre><p>これでヘッダーファイルの生成ができましたので、「com_book_jni_HelloJNI.c」を作成して、C言語のソースコードを記述します。ここが手動部分に該当します。</p><p>ソースコードが完成したら、cc/gcc/clangを使ったビルドの流れを解説します。ビルドには２つのステップがあります。</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+「com_book_jni_HelloJNI.c」からHelloJNI.oをビルド
+</li><li class="listitem">
+「HelloJNI.o」からlibhello.dylibをビルド
+</li></ol></div><p>前者はソースコードのコンパイル、後者はライブラリの生成・ビルドをします。このステップは「all」という名称のターゲットで実行できます。</p><pre xmlns="" class="prettyprint">$ make all
+cc -c -I/Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/ -I /Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/darwin/ -c com_book_jni_HelloJNI.c -o HelloJNI.o
+cc -dynamiclib -o libhello.dylib HelloJNI.o -framework JavaVM -framework OpenCL</pre><p>これでネイティブライブラリ「libhello.dylib」が生成されます。生成されたファイルは以下のように確認できます。</p><pre xmlns="" class="prettyprint">$ ls
+com_book_jni_HelloJNI.c libhello.dylib
+HelloJNI.o              com_book_jni_HelloJNI.h makefile</pre><p>最後にJNIクラスを実行します。</p><pre xmlns="" class="prettyprint">$ cd ../target/classes
+$ java com.book.jni.HelloJNI
+CL_DEVICE_NAME: Intel(R) Core(TM) i5-3210M CPU @ 2.50GHz
+CL_DEVICE_NAME: HD Graphics 4000</pre><p>このOpenCL実装がサポートデバイスを検索した結果を、標準出力し正常にプログラムが実行されたことが確認できました。</p><p>makefileのソースは以下のようになります。</p><p><a id="jni-makefile"></a><strong>makefile. </strong>
+</p><pre xmlns="" class="prettyprint"># クラスパスを定義
+CLASS_PATH = ../target/classes
+
+# binディレクトリ内の.classファイルの仮想パスを定義
+#vpath %.class $(CLASS_PATH)
+
+all : libhello.dylib
+        mv libhello.dylib $(CLASS_PATH)
+
+# .dylib（Max OS X）を出力します。
+# Windowsの場合は、hello.dll、Linuxの場合は libhello.so
+# 出力: libhello.dylib
+libhello.dylib : HelloJNI.o
+        cc -dynamiclib -o $@ $&lt; -framework JavaVM -framework OpenCL
+
+# 検証環境ではjdk1.8.0_05を使用しています。インクルードパスはjdkバージョンと合わせます。
+# 出力：HelloJNI.o
+HelloJNI.o : com_book_jni_HelloJNI.c com_book_jni_HelloJNI.h
+        cc -c -I/Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/ -I /Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/darwin/ -c $&lt; -o $@
+
+# ヘッダーファイルを自動生成します。
+# 手動でヘッダーファイルを作る場合はこのステップは不要
+# 出力：com_book_jni_HelloJNI.h
+header_gen :
+        javah -verbose -classpath $(CLASS_PATH) com.book.jni.HelloJNI
+
+clean :
+        rm com_book_jni_HelloJNI.h com_book_jni_HelloJNI.c HelloJNI.o $(CLASS_PATH)/libhello.dylib</pre><p>
+</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_javah"></a>4.2.1. javah</h3></div></div></div><p>前の項目では、ヘッダーファイルを「header_gen」というmakeターゲットを呼び出して生成しました。makeターゲットはjavahというツールをバックグランドで実行しており、ヘッダーファイルを作成しているのですが、ここではjavahの使い方について解説します。</p><p>ネイティブ関数を持つJavaクラスからC形式のヘッダーファイルを生成するJDKツールです。Javaメソッドのシグネチャーをネイティブ関数プロトタイプに適合させます。</p><p>javahはCLIで呼び出し、「package_name_classname.h 」の形式を持つC言語ヘッダーファイルを生成します。</p><p>例えば「HelloJNI.class」から生成したクラスからヘッダーを生成するには以下の手順で行います。まずソースコードとなるHelloJNI.javaをコンパイルして、クラスファイルを生成します。</p><pre xmlns="" class="prettyprint">javac -d target/classes/ src/main/java/com/book/jni/HelloJNI.java</pre><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>この例はMavenで生成したプロジェクトのため「src/main/java」がソースコードのルートパスとなりますが、プロジェクトによっては「src」フォルダにパッケージがあるかもしれません。</p></div><p>次にクラスファイルが以下のように生成されたことを「ls」「cd」コマンド等で探索して確認します。</p><pre xmlns="" class="prettyprint">target
+├── classes
+│   ├── com
+│   │   └── book
+│   │       └── jni
+│   │           └── HelloJNI.class</pre><p>最後にクラスパスでjavahコマンドを発行します。</p><pre xmlns="" class="prettyprint">$ cd target/classes
+$ javah -jni com.book.jni.HelloJNI</pre><p>Makefile（<a class="xref" href="ch04s02.html#jni-makefile" title="makefile">makefile</a>）を使うビルドでは、以下のように事前に設定しておいたクラスパスを使うと便利です。</p><pre xmlns="" class="prettyprint">$ javah -verbose -classpath $(CLASS_PATH) com.book.jni.HelloJNI</pre><p>このjavahはヘッダーを生成するだけのことしかしません。そのため手動で書けるだけの知識があるのであれば、必須なステップではありません。ただし、javaソースコードの関数プロトタイプの個数が多くなるのであれば、自動生成を使うのは悪い考えではないでしょう。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_jniバイナリのビルド"></a>4.2.2. JNIバイナリのビルド</h3></div></div></div><p>Mac OS XでのJNIバイナリのビルドには、「jni.h」をインクルードするために以下のようなコマンドが発行されます。</p><pre xmlns="" class="prettyprint">gcc -c -I/Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/ -I /Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/include/darwin/ -c com_book_jni_HelloJNI.c -o HelloJNI.o</pre><div class="section"><div class="titlepage"><div><div><h4 class="title"><a id="_linux_2"></a>Linux</h4></div></div></div><div class="warning" style="margin-left: 0; margin-right: 10%;"><h3 class="title">警告</h3><p>Linuxでのコンパイル・ビルドは未検証です。</p></div><p>Linuxではコンパイルオプションは以下のように設定します。</p><pre xmlns="" class="prettyprint">-I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux</pre><p>gccを使う場合は以下のようにすれば、ビルドできるはずです。</p><pre xmlns="" class="prettyprint">gcc -c -I$(JAVA_HOME)/include -I $(JAVA_HOME)/include/linux -c com_book_jni_HelloJNI.c -o HelloJNI.o</pre></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a id="_windows_2"></a>Windows</h4></div></div></div><div class="warning" style="margin-left: 0; margin-right: 10%;"><h3 class="title">警告</h3><p>Windowsでのコンパイル・ビルドは未検証です。この項目ではMinGW32がインストールされていることを前提とします。</p></div><p>MinGW32をインストールする場合、Linuxと同様にコンパイルオプションを指定しますが、以下のように「linux」フォルダではなく、「win32」フォルダを指定します。</p><p>本書ではサポートしないVisual Studioですが、「追加のインクルードディレクトリ」で以下のように設定します。</p><pre xmlns="" class="prettyprint">"$(JAVA_HOME)\include";
+"$(JAVA_HOME)\include\win32"</pre><p>64bit Windowsの場合は、MinGW-w64をインストールをして、x64アーキテクチャに相当するフォルダを指定してください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s01.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s03.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

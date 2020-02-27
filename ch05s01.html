@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>5.1. Maven2</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch05.html" title="第5章 JNA(Java Native Access)" /><link rel="prev" href="ch05.html" title="第5章 JNA(Java Native Access)" /><link rel="next" href="ch05s02.html" title="5.2. 検証環境の構成" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch05.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch05s02.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_maven2"></a>5.1. Maven2</h2></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>Max OS Xでは、HomeBrewとMac Portの２つのいずれかのパッケージマネージャーをインストールしてください。本書では読者は既にいずれかをインストールしているものと</p></div><p>本項目ではパッケージマネージャーを「Mac Port」としています。</p><p><strong>検証環境のMaven. </strong>
+</p><pre xmlns="" class="prettyprint">$ mvn2 -version
+Apache Maven 2.2.1 (r801777; 2009-08-07 04:16:01+0900)
+Java version: 1.8.0_05
+Java home: /Library/Java/JavaVirtualMachines/jdk1.8.0_05.jdk/Contents/Home/jre
+Default locale: ja_JP, platform encoding: UTF-8
+OS name: "mac os x" version: "10.9.5" arch: "x86_64" Family: "mac"</pre><p>
+</p><p>参考までに検証環境のMac Portでは以下のようなパッケージをダウンロードできます。</p><p><strong>Mac PortのMavenパッケージ. </strong>
+</p><pre xmlns="" class="prettyprint">$ sudo port search maven
+maven1 @1.1 (java, devel)
+    A java-based build and project management environment.
+
+maven2 @2.2.1_3 (java, devel)
+    A java-based build and project management environment.
+
+maven3 @3.3.9 (java, devel)
+    A java-based build and project management environment.</pre><p>
+</p><p>Maven で JNA のライブラリをダウンロードするには以下のように依存性モジュールを記述してください。</p><p><strong>pom.xmlの依存性解決. </strong>
+</p><pre xmlns="" class="prettyprint">&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;net.java.dev.jna&lt;/groupId&gt;
+        &lt;artifactId&gt;jna&lt;/artifactId&gt;
+        &lt;version&gt;4.2.0&lt;/version&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;</pre><p>
+</p><p>Eclipse 等の IDE では編集して保存するだけで依存性が更新されます。</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s02.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

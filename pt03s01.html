@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>1. 組み込みスカラデータ型</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="pt03.html" title="パート III. カーネルプログラミング" /><link rel="prev" href="pt03.html" title="パート III. カーネルプログラミング" /><link rel="next" href="pt03s02.html" title="2. ホストAPIとの対応" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="pt03.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="pt03s02.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_組み込みスカラデータ型"></a>1. 組み込みスカラデータ型</h2></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：スカラデータ型」（<a class="xref" href="apbs01.html#scalar" title="表B.1 表：スカラデータ型">表B.1「表：スカラデータ型」</a>）を参照ください。</p></div><p>OpenCL C言語のスカラ型は端的に言えば、複数の値でなく一つの値を持つデータ型のことです。</p><p>以下が代表的なスカラデータ型です。</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">
+bool
+</span></dt><dd>
+真偽型、true/false、1/0の値をとります。
+</dd><dt><span class="term">
+unsigned char, uchar
+</span></dt><dd>
+符号なしの8ビット整数。
+</dd><dt><span class="term">
+short
+</span></dt><dd>
+符号付き２の補数の16ビット整数。
+</dd><dt><span class="term">
+half
+</span></dt><dd>
+16ビット浮動小数点。A 32-bit floating-point. IEEE 754 半精度の記憶域フォーマットに準拠。
+</dd><dt><span class="term">
+int￼
+</span></dt><dd>
+符号付き２の補数の32ビット整数。
+</dd><dt><span class="term">
+unsigned int, uint
+</span></dt><dd>
+符号なしの32ビット整数。
+</dd><dt><span class="term">
+long￼
+</span></dt><dd>
+符号付き２の補数の64ビット整数。
+</dd><dt><span class="term">
+float
+</span></dt><dd>
+32ビット浮動小数点。A 32-bit floating-point. IEEE 754 単精度の記憶域フォーマットに準拠。
+</dd><dt><span class="term">
+double
+</span></dt><dd>
+64ビット浮動小数点。A 32-bit floating-point. IEEE 754 倍精度の記憶域フォーマットに準拠。
+</dd><dt><span class="term">
+size_t
+</span></dt><dd>
+符号なしの整数型（sizeof演算子の結果として用いる）。CL_DEVICE_ADDRESS_BITSが32ビットの時は、符号なしの32ビット整数。CL_DEVICE_ADDRESS_BITSが64ビットの時は、符号なしの64ビット整数。
+</dd></dl></div><p>doubleはデバイスによってはサポートしていません。double型がデバイスでサポートされているかチェックするには、cl_khr_fp64拡張（エクステンション）がサポートされているか、clGetDeviceInfoを呼び出して情報を取得します。サポートされている場合は以下のようにして拡張を有効にします。</p><pre xmlns="" class="prettyprint"> #pragma OPENCL EXTENSION cl_khr_fp64 : enable</pre><p>もし拡張を無効とする場合は、以下のようにenableをdisableに書き換えます。</p><pre xmlns="" class="prettyprint"> #pragma OPENCL EXTENSION cl_khr_fp64 : disable</pre><p>全エクステンションを有効または無効とする場合は、個別の拡張ではなく「all」の設定をします。</p><pre xmlns="" class="prettyprint">#pragma OPENCL EXTENSION all : enable</pre></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="pt03.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="pt03.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="pt03s02.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

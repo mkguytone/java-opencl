@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>13.3. バイトニックソートのOpenCL実装例</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch13.html" title="第13章 Bitonic Sort（バイトニックソート）" /><link rel="prev" href="ch13s02.html" title="13.2. バイトニックマージ" /><link rel="next" href="ch13s04.html" title="13.4. カーネルの実装（bitonic split）" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch13s02.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch13s04.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_バイトニックソートのopencl実装例"></a>13.3. バイトニックソートのOpenCL実装例</h2></div></div></div><p>前の項目で解説した、ステージ（stage）とパス（pass）はシリアルな処理であり、データ並列化を行う設計とはなっていません。従って忠実にバイトニック整列を実装するのであれば以下のループを避けることはできません。</p><pre xmlns="" class="prettyprint">int numberOfStages = log2(DATA_SIZE); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO128-1"></a>(1)
+int passes = 0;
+for(int i = 0; i &lt; numberOfStages-1; i++) { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO128-2"></a>(2)
+    for(int j = 0; j &lt; passes+1; j++) {
+        //OpenCLキューにコマンドを挿入
+    }
+    passes++; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO128-3"></a>(3)
+}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO128-1">(1)</a> </p></td><td valign="top" align="left"><p>
+log2は独自関数です。Javaソースコード内のメソッドを参照ください。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO128-2">(2)</a> </p></td><td valign="top" align="left"><p>
+ステージの総数は2を底とするデータ要素数の対数から1を引いた数です。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO128-3">(3)</a> </p></td><td valign="top" align="left"><p>
+パスはステージを反復する時にインクリメントします。
+</p></td></tr></table></div><p>バイトニックマージについては、パスによってスワップする要素の距離を調整えます。スワップの距離は以下のように、ステージからパスを引いた値の累乗となります。</p><pre xmlns="" class="prettyprint">for(int j = 0; j &lt; passes; j++) {
+
+    int distance = 1 &lt;&lt; (numberOfStages - 1 - j);
+
+    //OpenCLキューにコマンドを挿入します。
+    //distanceをカーネルのパラメータとする。
+}</pre><p>データの要素数が64とする場合はステージとパスについては以下の順序で推移していきます。</p><pre xmlns="" class="prettyprint">Stage = 0 Pass = 0
+Stage = 1 Pass = 0
+Stage = 1 Pass = 1
+Stage = 2 Pass = 0
+Stage = 2 Pass = 1
+Stage = 2 Pass = 2
+Stage = 3 Pass = 0
+Stage = 3 Pass = 1
+Stage = 3 Pass = 2
+Stage = 3 Pass = 3
+Stage = 4 Pass = 0
+Stage = 4 Pass = 1
+Stage = 4 Pass = 2
+Stage = 4 Pass = 3
+Stage = 4 Pass = 4</pre><p>データ要素数が16の場合は、3つのステージ（log2 N - 1）を処理します。</p><pre xmlns="" class="prettyprint">Stage = 0 Pass = 0
+Stage = 1 Pass = 0
+Stage = 1 Pass = 1
+Stage = 2 Pass = 0
+Stage = 2 Pass = 1
+Stage = 2 Pass = 2</pre><p>ホストコードについてはステージとパスがどのように算出されるかを追ってみてネットワーク図に書いてみるとわかるものなので、コードに目を通す前に図を書いて過程を理解するようにしてください。</p><p>ホストコードと、カーネルのソースコードは以下のようになります。カーネルのソースは次の項目で解説します。</p><p><a id="bitonic-sort-code"></a><strong>BitonicSortTest.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.bitonic;
+
+import static org.jocl.CL.*;
+
+import java.io.File;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.file.Paths;
+import java.util.Scanner;
+
+import org.jocl.CL;
+import org.jocl.Pointer;
+import org.jocl.Sizeof;
+import org.jocl.cl_command_queue;
+import org.jocl.cl_context;
+import org.jocl.cl_context_properties;
+import org.jocl.cl_device_id;
+import org.jocl.cl_kernel;
+import org.jocl.cl_mem;
+import org.jocl.cl_platform_id;
+import org.jocl.cl_program;
+
+public class BitonicSortTest {
+
+        private static final String KERNEL_PATH = "bitonic.cl";
+        private static final String KERNEL_BITONIC = "bitonic";
+        private static final String KERNEL_MERGE = "merge";
+
+    private static cl_context context;
+    private static cl_command_queue queue;
+    private static cl_program program;
+    private static cl_kernel kernel_bitonic;
+    private static cl_kernel kernel_merge;
+
+        private static final int DATA_SIZE = 32;
+        private static final int[] data = new int[DATA_SIZE];
+
+        private static long[] global_work_size = new long[]{DATA_SIZE,1,1};
+
+        private static int log2(int b) {
+                int result = 0;
+                if((b &amp; 0xffff0000) != 0) {
+                        b &gt;&gt;&gt;= 16;
+                        result = 16;
+                }
+                if(b &gt;= 256) {
+                        b &gt;&gt;&gt;= 8;
+                        result += 8;
+                }
+                if(b &gt;= 16) {
+                        b &gt;&gt;&gt;= 4;
+                        result += 4;
+                }
+                if(b &gt;= 4) {
+                        b &gt;&gt;&gt;= 2;
+                        result += 2;
+                }
+                return result + (b &gt;&gt;&gt; 1);
+        }
+
+        public static void main(String[] args) throws Exception {
+
+                CL.setExceptionsEnabled(true);
+
+                cl_platform_id[] platform = new cl_platform_id[1];
+                cl_device_id[] device = new cl_device_id[1];
+                int[] num_devices = new int[1];
+
+                clGetPlatformIDs(1, platform, null);
+                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, num_devices);
+
+                cl_context_properties props = new cl_context_properties();
+                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
+                context = clCreateContext(props, 1, device, null, null, null);
+
+                queue = clCreateCommandQueue(context, device[0], 0, null);
+
+                StringBuffer sb  = new StringBuffer();
+                URL resource = BitonicSortTest.class.getResource(KERNEL_PATH) ;
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                Scanner sc = new Scanner(new File(path));
+                while(sc.hasNext()) {
+                        sb.append(sc.nextLine() + "\n");
+                }
+                sc.close();
+                program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
+                StringBuffer op = new StringBuffer();
+                op.append("-Dsize=");
+                op.append(DATA_SIZE);
+                String option = op.toString();
+                clBuildProgram(program, 0, null, option, null, null);
+
+                kernel_bitonic = clCreateKernel(program, KERNEL_BITONIC, null);
+                kernel_merge = clCreateKernel(program, KERNEL_MERGE, null);
+
+                generateSample();
+
+                cl_mem data_mem = clCreateBuffer(context,
+                                CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_uint*DATA_SIZE, Pointer.to(data), null);
+
+                int[] passPtr = new int[1];
+                int[] distancePtr = new int[1];
+                int[] stageDistancePtr = new int[1];
+                int numberOfStages = log2(DATA_SIZE);
+                int passes = 0;
+                for(int i = 0; i &lt; numberOfStages-1; i++) {
+
+                        for(int j = 0; j &lt; passes+1; j++) {
+
+                                int distance = 1 &lt;&lt; (i - j);
+                                distancePtr[0] = distance;
+                                stageDistancePtr[0] = 1 &lt;&lt; i;
+
+                                long[] local_work_size = new long[]{Math.max(0, Math.min(256, distance&lt;&lt;1)),1,1};
+
+                                clSetKernelArg(kernel_bitonic, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                                clSetKernelArg(kernel_bitonic, 1, Sizeof.cl_uint, Pointer.to(distancePtr));
+                                clSetKernelArg(kernel_bitonic, 2, Sizeof.cl_uint, Pointer.to(stageDistancePtr));
+
+                                clEnqueueNDRangeKernel(queue, kernel_bitonic, 1, null,
+                                                global_work_size, local_work_size, 0, null, null);
+
+                                System.out.println("Stage = "+i+" Pass = "+j);
+                        }
+
+                        passes++;
+                        passPtr[0] = passes;
+                }
+
+                passes = numberOfStages;
+
+                for(int j = 0; j &lt; passes; j++) {
+
+                        int distance = 1 &lt;&lt; (numberOfStages - 1 - j);
+                        distancePtr[0] = distance;
+                        long[] local_work_size = new long[]{Math.max(0, Math.min(256, distance&lt;&lt;1)),1,1};
+
+                        clSetKernelArg(kernel_merge, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                        clSetKernelArg(kernel_merge, 1, Sizeof.cl_uint, Pointer.to(distancePtr));
+
+                        clEnqueueNDRangeKernel(queue, kernel_merge, 1, null,
+                                        global_work_size, local_work_size, 0, null, null);
+                }
+
+                ByteBuffer output = clEnqueueMapBuffer(queue,
+                                data_mem,
+                                CL_TRUE,
+                                CL_MAP_WRITE,
+                                0,
+                                Sizeof.cl_uint*DATA_SIZE,
+                                0,
+                                null,
+                                null,
+                                null);
+
+                clEnqueueUnmapMemObject(queue, data_mem, output, 0, null, null);
+                clFinish(queue);
+
+                output.order(ByteOrder.LITTLE_ENDIAN);
+
+                for(int i = 0; i &lt; DATA_SIZE; i++) {
+                        System.out.println(output.getInt());
+                }
+
+        }
+
+        private static void generateSample() {
+                for(int i = 0; i &lt; DATA_SIZE; i+=2) {
+                        data[i] = DATA_SIZE-i;
+                        data[i+1] =10;
+                }
+        }
+
+}</pre><p>
+</p><p><a id="bitonic-cl-code"></a><strong>bitonic.cl. </strong>
+</p><pre xmlns="" class="prettyprint">__kernel void merge(
+                __global uint* data,
+                const uint distance) {
+        uint gid = get_global_id(0);
+        uint lid = get_local_id(0);
+        uint cmp_mask;
+
+        int in_range = isless(gid % (distance &lt;&lt; 1),distance);
+
+        if(in_range) {
+                uint left = data[gid];
+                uint right = data[gid+distance];
+                cmp_mask = left &lt; right ? 1 : 0;
+                data[gid] = select(left,right,cmp_mask);
+                data[gid+distance] = select(right,left,cmp_mask);
+                printf("merge. d=%d, gdiv=%d, left=%d, right=%d, data[gid]=%d, data[gid+d]=%d\n", distance,gid % (distance &lt;&lt; 1),left,right,data[gid],data[gid+distance]);
+        }
+}
+
+__kernel void bitonic(
+                __global uint* data,
+                const uint distance,
+                const uint stageDistance) {
+
+        uint gid = get_global_id(0);
+        uint lid = get_local_id(0);
+
+        int in_range = isless(gid % (distance &lt;&lt; 1),distance);
+
+        if(in_range) {
+
+                uint middle = stageDistance &lt;&lt; 1;
+                int dir_mask = isgreaterequal(gid%(middle*2),middle);
+
+                uint left = data[gid];
+                uint right = data[gid+distance];
+                uint cmp_mask;
+
+                if(dir_mask) {
+                        cmp_mask = left &lt; right ? 1 : 0;
+                } else {
+                        cmp_mask = left &gt; right ? 1 : 0;
+                }
+                data[gid] = select(left,right,cmp_mask);
+                data[gid+distance] = select(right,left,cmp_mask);
+
+                printf("d=%d, gdiv=%d, left=%d, right=%d, data[gid]=%d, data[gid+d]=%d\n", distance,gid % (distance &lt;&lt; 1),left,right,data[gid],data[gid+distance]);
+        }
+}</pre><p>
+</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch13s02.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch13.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch13s04.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

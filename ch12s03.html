@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>12.3. PNG画像の高域フィルターをCPUで実装</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch12.html" title="第12章 2次元高速フーリエ変換" /><link rel="prev" href="ch12s02.html" title="12.2. 2次元への適用アルゴリズム" /><link rel="next" href="ch12s04.html" title="12.4. 実装例（GPGPU）" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch12s02.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch12s04.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_png画像の高域フィルターをcpuで実装"></a>12.3. PNG画像の高域フィルターをCPUで実装</h2></div></div></div><p>CPUでの2次元FFTの実装は前の項目の図（<a class="xref" href="ch12s02.html#fft-2d-procedure" title="図12.2 図：2次元FFTの手順">図12.2「図：2次元FFTの手順」</a>）で解説した通りとなります。</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+PNG画像をバイト型で読み込み
+</li><li class="listitem">
+RGBチャネルを一つごと(Red,Green,Blue)に独立した変数に記憶
+</li><li class="listitem">
+読み込んだ画像の走査線を行スキャン
+</li><li class="listitem">
+各行をスキャンした配列・スライスのFFT
+</li><li class="listitem">
+変換した2次元スライスの走査線を列スキャン
+</li><li class="listitem">
+各列をスキャンした配列・スライスのFFT
+</li><li class="listitem">
+フィルターの適用
+</li><li class="listitem">
+各列をスキャンした配列・スライスの逆FFT
+</li><li class="listitem">
+各行をスキャンした配列・スライスの逆FFT
+</li></ol></div><p>この手順のFFTでは、FFTの前にビット反転が行われるものとします。</p><p>この手順を実装すると下記のようなソースコードとなります。</p><p><strong>FFTCPU2D.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.fft;
+
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Paths;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
+
+public class FFTCPU2D {
+
+        private static final String IMAGE_PATH = "SAMPLE.png";
+    private static ImageIcon img;
+    private static int width;
+    private static int height;
+
+        private static double _PI = Math.PI;
+        private static final int _RowSize = 256;
+        private static final int _ColSize = 256;
+        private static final int size = _RowSize*_ColSize;
+        private static int _SIGN = 1;
+
+        private static void forward(int N, int offset, double[] data, double[] F, int sign, int step) {
+                int N2 = N/2;
+                double c, s;
+                double real, imaginary;
+
+                step++;
+
+                if(N2 != 2) {
+                        forward(N2,offset,data,F,sign,step);
+                        forward(N2,offset+N2,data,F,sign,step);
+
+                        for(int i = 0; i &lt; N2; i+=2) {
+                                // sin -x = -sin x
+                                // cos -x = cos x
+                                c = Math.cos(i*_PI/N2); // (_PI * 2 * k)
+                                s = sign*Math.sin(i*_PI/N2); // (_PI * 2 * k)
+
+                                // (c+si)*(p+qi) =&gt; (cp-sq, cq+sp)
+                                real = F[i+N2+offset]*c + F[i+N2+1+offset]*s;
+                                imaginary = F[i+N2+1+offset]*c - F[i+N2+offset]*s;
+
+                                //System.out.println("pair: "+ (i+offset)/2+"-"+ (i+N2+offset)/2+"      N2: " +N2+ " offset:"+offset + " step:"+step + "        c="+c+" s="+s);
+
+                                F[i+N2+offset] = F[i+offset] - real;
+                                F[i+N2+1+offset] = F[i+1+offset] - imaginary;
+                                F[i+offset] += real;
+                                F[i+1+offset] += imaginary;
+
+                        }
+
+                } else {
+                        F[offset] = data[offset] + data[offset+N2];
+                        F[offset+1] = data[offset+1] + data[offset+N2+1];
+                        F[offset+N2] = data[offset] - data[offset+N2];
+                        F[offset+N2+1] = data[offset+1] - data[offset+N2+1];
+                        //System.out.println("pair: "+ (offset)/2+"-"+ (N2+offset)/2+"  N2: " +N2+ " offset:"+offset + " FFT-2 " +F[offset]+"   "+F[offset+N2]);
+
+                }
+
+        }
+
+        private static void inverse(int N, double[] data, double[] F) {
+                int N2 = N/2;
+                int inverseSign = -1;
+
+                forward(N,0,data,F,inverseSign,0);
+                for(int i = 0; i &lt; N; i+=2) {
+                        F[i] /= N2;
+                        F[i+1] /= N2;
+                }
+
+        }
+
+        private static int reverseBit(int x, int maxBits) {
+                int bit = 0;
+                while (maxBits != 0){
+                        bit &lt;&lt;=1;
+                        bit |=( x &amp;1 );
+                        x &gt;&gt;=1;
+                        maxBits&gt;&gt;=1;
+                }
+                return bit;
+        }
+
+        private static int resizeToPowerOfTwo(int x) {
+                int bit = 1;
+                while(x &gt; bit) {
+                        bit &lt;&lt;=1;
+                }
+                return bit;
+        }
+
+        private static void reverseData(int N, double[] data) {
+                for(int i = 2; i &lt; N*2; i+=2) {
+                        int rev = reverseBit(i/2,N-1) &lt;&lt; 1;
+                        if(i &lt; rev) {
+                                //System.out.println("i: "+i/2+" rev:"+rev/2);
+                                double tmpR = data[i];
+                                double tmpI = data[i+1];
+                                data[i] = data[rev];
+                                data[i+1] = data[rev+1];
+                                data[rev] = tmpR;
+                                data[rev+1] = tmpI;
+                        }
+                }
+        }
+
+
+        public static void main(String[] args) throws Exception {
+
+                URL imgResource = FFTCPU2D.class.getResource(IMAGE_PATH);
+                String imgPath = Paths.get(imgResource.toURI()).toFile().getAbsolutePath();
+                System.out.println(imgPath);
+        img = new ImageIcon(imgResource);
+
+        width = img.getIconWidth();
+        height = img.getIconHeight();
+
+        BufferedImage bimg = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+        Graphics g = bimg.createGraphics();
+        img.paintIcon(null, g, 0,0);
+        g.dispose();
+
+        int pixelLength;
+        if(bimg.getAlphaRaster() != null) {
+            pixelLength = 4;
+        } else {
+                pixelLength = 3;
+        }
+
+        DataBufferByte dbb = (DataBufferByte)bimg.getRaster().getDataBuffer();
+            byte[] byteArray = dbb.getData();
+            System.out.println(byteArray.length);
+            System.out.println(pixelLength);
+
+            //生データ、バイト
+        byte[] _rawBlue = new byte[width*height];
+        byte[] _rawRed = new byte[width*height];
+        byte[] _rawGreen = new byte[width*height];
+
+        //RGBチャネルとして独立した変数に記憶
+        for( int i = 0; i &lt; width; i++ ) {
+            for( int j = 0; j &lt; height; j++ ) {
+                int index = j*width*pixelLength + i*pixelLength;
+                _rawBlue[j*width + i] = byteArray[index++];
+                _rawGreen[j*width + i] = byteArray[index++];
+                _rawRed[j*width + i] = byteArray[index];
+            }
+                }
+
+        //色彩配列、倍精度
+        double[] arBlue = new double[size*2];
+        double[] arGreen = new double[size*2];
+        double[] arRed = new double[size*2];
+
+        // Single row vector：行スキャンで走査線を記憶する変数
+                double[] srvBlue = new double[_RowSize*2];
+                double[] srvGreen = new double[_RowSize*2];
+                double[] srvRed = new double[_RowSize*2];
+
+                // Single row output vector：行を変換した配列を記憶する変数
+                double[] sroBlue = new double[_RowSize*2];
+                double[] sroGreen = new double[_RowSize*2];
+                double[] sroRed = new double[_RowSize*2];
+
+                // Single column vector：列スキャンを記憶する変数
+                double[] sclBlue = new double[_ColSize*2];
+                double[] sclGreen = new double[_ColSize*2];
+                double[] sclRed = new double[_ColSize*2];
+
+                // Single column output vector：列を変換した配列を記憶する変数
+                double[] scoBlue = new double[_ColSize*2];
+                double[] scoGreen = new double[_ColSize*2];
+                double[] scoRed = new double[_ColSize*2];
+
+                // Row matrix：行をフーリエ変換した配列を連結した行列
+                double[] rowBlue = new double[size*2];
+                double[] rowGreen = new double[size*2];
+                double[] rowRed = new double[size*2];
+
+                // Column matrix：列をフーリエ変換した配列を連結した行列
+        double[] colBlue = new double[size*2];
+        double[] colGreen = new double[size*2];
+        double[] colRed = new double[size*2];
+
+        // Output matrix：出力のための行列
+                double[] outBlue = new double[size*2];
+                double[] outGreen = new double[size*2];
+                double[] outRed = new double[size*2];
+
+        // cast to double；倍精度にキャスト
+        for(int i = 0; i &lt; _ColSize; i++) {
+                        for(int j = 0; j &lt; _RowSize*2; j+=2) {
+                                arBlue[i*_RowSize*2 + j] = (double)(_rawBlue[i*width + j/2] &amp; 0xff);
+                                arBlue[i*_RowSize*2 + j + 1] = (double)0.0f;
+                                arGreen[i*_RowSize*2 + j] = (double)(_rawGreen[i*width + j/2] &amp; 0xff);
+                                arGreen[i*_RowSize*2 + j + 1] = (double)0.0f;
+                                arRed[i*_RowSize*2 + j] = (double)(_rawRed[i*width + j/2] &amp; 0xff);
+                                arRed[i*_RowSize*2 + j + 1] = (double)0.0f;
+                        }
+        }
+
+                for(int i = 0; i &lt; _ColSize; i++) {
+                        //get row vector：行スキャン
+                        for(int j = 0; j &lt; _RowSize*2; j+=2) {
+                                srvBlue[j] = arBlue[i*_RowSize*2 + j];
+                                srvBlue[j+1] = arBlue[i*_RowSize*2 + j + 1];
+                                srvGreen[j] = arGreen[i*_RowSize*2 + j];
+                                srvGreen[j+1] = arGreen[i*_RowSize*2 + j + 1];
+                                srvRed[j] = arRed[i*_RowSize*2 + j];
+                                srvRed[j+1] = arRed[i*_RowSize*2 + j + 1];
+                        }
+                        //bit reversal：ビット反転
+                        reverseData(_RowSize,srvBlue);
+                        reverseData(_RowSize,srvGreen);
+                        reverseData(_RowSize,srvRed);
+
+                        //forward transformation：フーリエ変換
+                        forward(_RowSize*2, 0, srvBlue, sroBlue, _SIGN, 0);
+                        forward(_RowSize*2, 0, srvGreen, sroGreen, _SIGN, 0);
+                        forward(_RowSize*2, 0, srvRed, sroRed, _SIGN, 0);
+
+                        // form the row matrix
+                        for(int k = 0; k &lt; _RowSize*2; k+=2) {
+                                rowBlue[i*_RowSize*2 + k] = sroBlue[k];
+                                rowBlue[i*_RowSize*2 + k + 1] = sroBlue[k+1];
+                                rowGreen[i*_RowSize*2 + k] = sroGreen[k];
+                                rowGreen[i*_RowSize*2 + k + 1] = sroGreen[k+1];
+                                rowRed[i*_RowSize*2 + k] = sroRed[k];
+                                rowRed[i*_RowSize*2 + k + 1] = sroRed[k+1];
+                        }
+                }
+
+                for(int i = 0; i &lt;_RowSize*2; i+=2) {
+                        //get column vector：列スキャンをして配列に記憶
+                        for(int j = 0; j &lt; _ColSize*2; j+=2) {
+                                sclBlue[j] = rowBlue[j*_RowSize + i];
+                                sclBlue[j+1] = rowBlue[j*_RowSize + i + 1];
+                                sclGreen[j] = rowGreen[j*_RowSize + i];
+                                sclGreen[j+1] = rowGreen[j*_RowSize + i + 1];
+                                sclRed[j] = rowRed[j*_RowSize + i];
+                                sclRed[j+1] = rowRed[j*_RowSize + i + 1];
+                        }
+
+                        //bit reversal：ビット反転
+                        reverseData(_ColSize,sclBlue);
+                        reverseData(_ColSize,sclGreen);
+                        reverseData(_ColSize,sclRed);
+
+                        //forward transformation：フーリエ変換
+                        forward(_ColSize*2, 0, sclBlue, scoBlue, _SIGN, 0);
+                        forward(_ColSize*2, 0, sclGreen, scoGreen, _SIGN, 0);
+                        forward(_ColSize*2, 0, sclRed, scoRed, _SIGN, 0);
+
+                        for(int k = 0; k &lt; _ColSize*2; k+=2) {
+                                colBlue[k*_RowSize + i] = scoBlue[k];
+                                colBlue[k*_RowSize + i + 1] = scoBlue[k+1];
+                                colGreen[k*_RowSize + i] = scoGreen[k];
+                                colGreen[k*_RowSize + i + 1] = scoGreen[k+1];
+                                colRed[k*_RowSize + i] = scoRed[k];
+                                colRed[k*_RowSize + i + 1] = scoRed[k+1];
+                        }
+                }
+
+                /*
+                 *
+                 *  Apply High Pass Filter：
+                 *
+                 */
+
+                for(int i = 0; i &lt; _RowSize*2; i+=2) {
+                        for(int k = 0; k &lt; _ColSize; k++) {
+                                colBlue[k*_RowSize + i] = colBlue[k*_RowSize + i] &gt; 256*256*200 ? colBlue[k*_RowSize + i] : 0;
+                                colBlue[k*_RowSize + i + 1] = colBlue[k*_RowSize + i + 1] &gt; 256*256*200 ? colBlue[k*_RowSize + i + 1] : 0;
+                                colGreen[k*_RowSize + i] = colGreen[k*_RowSize + i] &gt; 256*256*200 ? colGreen[k*_RowSize + i] : 0;
+                                colGreen[k*_RowSize + i + 1] = colGreen[k*_RowSize + i + 1] &gt; 256*256*200 ? colGreen[k*_RowSize + i + 1] : 0;
+                                colRed[k*_RowSize + i] = colRed[k*_RowSize + i] &gt; 256*256*200 ? colRed[k*_RowSize + i] : 0;
+                                colRed[k*_RowSize + i + 1] = colRed[k*_RowSize + i + 1] &gt; 256*256*200 ? colRed[k*_RowSize + i + 1] : 0;
+                        }
+                }
+
+
+                /*
+                 *
+                 *  Inverse FFT：逆フーリエ変換
+                 *
+                 */
+
+                for(int i = 0; i &lt;_RowSize*2; i+=2) {
+
+                        //get column vector：列スキャン
+                        for(int j = 0; j &lt; _ColSize*2; j+=2) {
+                                sclBlue[j] = colBlue[j*_RowSize + i];
+                                sclBlue[j+1] = colBlue[j*_RowSize + i + 1];
+                                sclGreen[j] = colGreen[j*_RowSize + i];
+                                sclGreen[j+1] = colGreen[j*_RowSize + i + 1];
+                                sclRed[j] = colRed[j*_RowSize + i];
+                                sclRed[j+1] = colRed[j*_RowSize + i + 1];
+                        }
+
+                        //bit reversal：ビット反転
+                        reverseData(_ColSize, sclBlue);
+                        reverseData(_ColSize, sclGreen);
+                        reverseData(_ColSize, sclRed);
+
+                        //inverse transformation：逆変換
+                        inverse(_ColSize*2, sclBlue, scoBlue);
+                        inverse(_ColSize*2, sclGreen, scoGreen);
+                        inverse(_ColSize*2, sclRed, scoRed);
+
+                        for(int k = 0; k &lt; _ColSize*2; k+=2) {
+                                colBlue[k*_RowSize + i] = scoBlue[k];
+                                colBlue[k*_RowSize + i + 1] = scoBlue[k+1];
+                                colGreen[k*_RowSize + i] = scoGreen[k];
+                                colGreen[k*_RowSize + i + 1] = scoGreen[k+1];
+                                colRed[k*_RowSize + i] = scoRed[k];
+                                colRed[k*_RowSize + i + 1] = scoRed[k+1];
+                        }
+                }
+
+                for(int i = 0; i &lt;_ColSize; i++) {
+
+                        //get row vector：行スキャン
+                        for(int j = 0; j &lt; _RowSize*2; j+=2) {
+                                srvBlue[j] = colBlue[i*_RowSize*2 + j];
+                                srvBlue[j+1] = colBlue[i*_RowSize*2 + j + 1];
+                                srvGreen[j] = colGreen[i*_RowSize*2 + j];
+                                srvGreen[j+1] = colGreen[i*_RowSize*2 + j + 1];
+                                srvRed[j] = colRed[i*_RowSize*2 + j];
+                                srvRed[j+1] = colRed[i*_RowSize*2 + j + 1];
+                        }
+
+                        //bit reversal：ビット反転
+                        reverseData(_RowSize, srvBlue);
+                        reverseData(_RowSize, srvGreen);
+                        reverseData(_RowSize, srvRed);
+
+                        // inverse transformation：逆変換
+                        inverse(_RowSize*2, srvBlue, sroBlue);
+                        inverse(_RowSize*2, srvGreen, sroGreen);
+                        inverse(_RowSize*2, srvRed, sroRed);
+
+                        for(int k = 0; k &lt; _RowSize*2; k+=2) {
+                                outBlue[i*_RowSize*2 + k] = sroBlue[k];
+                                outBlue[i*_RowSize*2 + k + 1] = sroBlue[k+1];
+                                outGreen[i*_RowSize*2 + k] = sroGreen[k];
+                                outGreen[i*_RowSize*2 + k + 1] = sroGreen[k+1];
+                                outRed[i*_RowSize*2 + k] = sroRed[k];
+                                outRed[i*_RowSize*2 + k + 1] = sroRed[k+1];
+                        }
+                }
+
+                // ファイルに保存するため整数型の変数をメモリ空間に割り当て
+                int[] output = new int[_RowSize*_ColSize];
+
+                BufferedImage outImage = new BufferedImage(_RowSize, _ColSize, BufferedImage.TYPE_INT_RGB);
+
+                // RGB色彩を整数型に集約
+        for( int i = 0; i &lt; _RowSize*2; i+=2 ) {
+            for( int j = 0; j &lt; _ColSize; j++ ) {
+
+                output[j*_RowSize+i/2] = 0xFF000000
+                                | ((int) ((byte)outBlue[j*_RowSize*2 + i] &amp; 0xff) &lt;&lt; 16)
+                                | ((int) ((byte)outGreen[j*_RowSize*2 + i] &amp; 0xff) &lt;&lt; 8)
+                                | ((int) ((byte)outRed[j*_RowSize*2 + i] &amp; 0xff));
+
+            }
+                }
+
+        // クラスパス（mavenプロジェクトの場合は/target/classes/pathToPackage）にimage.pngファイルを生成
+                outImage.setRGB(0, 0, _RowSize, _ColSize, output, 0, _RowSize);
+                URL resource = FFTCPU2D.class.getResource("./");
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                System.out.println(path+"/image.png");
+        ImageIO.write(outImage, "png", new File(path+"/image.png"));
+
+        }
+
+}</pre><p>
+</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_高域フィルターの出力"></a>12.3.1. 高域フィルターの出力</h3></div></div></div><div class="figure"><a id="idm10203"></a><p class="title"><strong>図12.3 図：入力画像</strong></p><div class="figure-contents"><div class="mediaobject"><img src="images/SAMPLE.png" alt="images/SAMPLE.png" /></div></div></div><br class="figure-break" /><div class="figure"><a id="idm10210"></a><p class="title"><strong>図12.4 図：出力画像（高域フィルター）</strong></p><div class="figure-contents"><div class="mediaobject"><img src="images/image_high_pass.png" alt="images/image_high_pass.png" /></div></div></div><br class="figure-break" /></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch12s02.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch12.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch12s04.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

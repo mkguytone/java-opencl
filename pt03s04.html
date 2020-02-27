@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>4. 組み込みベクトルデータ型</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="pt03.html" title="パート III. カーネルプログラミング" /><link rel="prev" href="pt03s03.html" title="3. バイト順序" /><link rel="next" href="pt03s05.html" title="5. その他の組み込みデータ型" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="pt03s03.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="pt03s05.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_組み込みベクトルデータ型"></a>4. 組み込みベクトルデータ型</h2></div></div></div><p>ベクトルはスカラ型をベースにして、charn、ucharn、shortn、intn、floatnと表記され、nは要素数に該当し、2、3、4、8、16の値を指定できます。</p><p>単なる複数の要素を持った基本データ型は配列を指すポインタでも可能ですが、ベクトル型は各要素への処理を並列化させる効用があります。</p><p>最新のプロセッサー(CPU)では、サイクル単位でデータ処理量を増やすことを目的としたIntelの実装にはSSE（Streaming SIMD extensions）やAVX（Intel Advanced Vector Extensions）といった処理方式が提供されています。SSEは128ビット、AVXが256ビットのレジスタを持ちます。つまり、SSEであれば4つの32ビットデータ型、AVXであれば8個の32ビットデータ型を一回のサイクルで並列で処理させることができます。</p><p>SIMD方式による命令は、レジスタの領域を効率的に使用することで、複数のベクトル要素が同時に処理されることを可能とします。OpenCLのベクトルデータ型はこのSIMDのスレッド・スケジューリングとディスパッチを自動で行います。そのため本の前半で紹介したMMXテクノロジのようなベンダー独自のAPIを使う必要はなく、ベクトル型への操作は、ほぼC言語で記述するのと同じ感覚でプログラミングができます。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_ベクトルデータ型の実装"></a>4.1. ベクトルデータ型の実装</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：ベクトルデータ型」（<a class="xref" href="apbs03.html#vector" title="表B.3 表：ベクトルデータ型">表B.3「表：ベクトルデータ型」</a>）と「表：ベクトル型の互換性」（<a class="xref" href="apbs03.html#vector_interop" title="表B.4 表：ベクトル型の互換性">表B.4「表：ベクトル型の互換性」</a>）を参照ください。</p></div><p>IntelのGPUデバイスではメモリアドレス空間の最適化のために、最低でも32-bitのデータサイズでのアクセスが推奨されています。以下のデータ型は32ビットデータ型の例です。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+char4
+</li><li class="listitem">
+ushort2
+</li><li class="listitem">
+int
+</li></ul></div><p>intは32ビット、char4は8 x 4、ushort2は16 x 2ということで32ビットを構成します。</p><div class="important" style="margin-left: 0; margin-right: 10%;"><h3 class="title">重要</h3><p>一般的に２の冪乗のコンポーネントを持つことがメモリ空間の最適化の原則です。</p></div><p>さらによりメモリを効率的に使うには以下のような４つの32-bitをまとめたベクトルデータ型が良いとされています。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+float4
+</li><li class="listitem">
+int4
+</li></ul></div><p>これは4 x 4 = 16バイトに相当します。</p><p>最適化について追記すると、OpenCLアプリケーションでパフォーマンスをあげるには、ホストプログラム内でデータを初期化するのは定石といっていいでしょう。その際には、本項目で解説したベクトルデータ型はOpenCL-C専用なため、ホストAPI側の対応データ型を使う必要があります。</p><p>例えば浮動小数点型、整数型のスカラデータをカーネル引数として渡すのであれば以下のようにホストプログラム内で宣言します。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+cl_float
+</li><li class="listitem">
+cl_int
+</li></ul></div><p>ただしスカラデータ型の場合は、floatやintのままでもコンパイルは通ります。OpenCLのホストAPIの組込みデータ型が役に立つのは、ベクトルとしてデータを初期化する場合です。</p><p>OpenCL-C言語のfloatn、intnに対応するのは以下の２つです。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+cl_floatn
+</li><li class="listitem">
+cl_intn
+</li></ul></div><p>このようにベクトル型にせよスカラ型にせよ、ホスト側とOpenCL-C（カーネル）の型の相互変換は直感的に行なうことができます。</p></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="pt03s03.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="pt03.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="pt03s05.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

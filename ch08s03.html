@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>8.3. Context</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch08.html" title="第8章 OpenCLホストAPI" /><link rel="prev" href="ch08s02.html" title="8.2. Deviceのクエリー" /><link rel="next" href="ch09.html" title="第9章 OpenCLランタイム" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch08s02.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_context"></a>8.3. Context</h2></div></div></div><p>Contextオブジェクトは、クラスツリー内の中心にあり各コンポーネント間が連携を行う中間点となります。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clcreatecontext"></a>8.3.1. clCreateContext</h3></div></div></div><p>clCreateContext関数はOpenCLコンテキストを生成します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳細は「表：clCreateContext」(<a class="xref" href="apbs10.html#clCreateContext" title="表B.16 表：clCreateContext">表B.16「表：clCreateContext」</a>)を参照ください。</p></div><pre xmlns="" class="prettyprint">cl_context org.jocl.CL.clCreateContext(
+    cl_context_properties properties, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO22-1"></a>(1)
+    int num_devices, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO22-2"></a>(2)
+    cl_device_id[] devices, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO22-3"></a>(3)
+    CreateContextFunction pfn_notify, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO22-4"></a>(4)
+    Object user_data, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO22-5"></a>(5)
+    int[] errcode_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO22-6"></a>(6)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO22-1">(1)</a> </p></td><td valign="top" align="left"><p>
+コンテキストの属性を指定（詳細はcl_context_propertiesの項目を参照のこと）
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO22-2">(2)</a> </p></td><td valign="top" align="left"><p>
+デバイスの数
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO22-3">(3)</a> </p></td><td valign="top" align="left"><p>
+デバイスのコレクション
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO22-4">(4)</a> </p></td><td valign="top" align="left"><p>
+エラーレポートの処理を記述する関数コールバックで以下のように宣言する。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO22-5">(5)</a> </p></td><td valign="top" align="left"><p>
+エラーレポートのユーザーデータ
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO22-6">(6)</a> </p></td><td valign="top" align="left"><p>
+エラーコード戻り値を指す整数配列
+</p></td></tr></table></div><p>CreateContextFunctionはコールバック用のインターフェースです。以下のコールバック関数をメンバー関数とします。</p><pre xmlns="" class="prettyprint">void function(
+    java.lang.String errinfo,
+    Pointer private_info,
+    long cb,
+    java.lang.Object user_data)</pre><p>CreateContextFunctionはログやライフサイクル関係の処理に連動させることができます。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_context_properties"></a>8.3.2. cl_context_properties</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_context_properties」（<a class="xref" href="apbs10.html#cl_context_properties" title="表B.17 表：cl_context_properties">表B.17「表：cl_context_properties」</a>）を参照ください。</p></div><p>コンテキストのプロパティ名とそれに対応する値のリストを指定し、終端要素を0とします。コンテキストに対応するプラットフォームを指定できます。NULL値指定も可能です。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clcreatecontextfromtype"></a>8.3.3. clCreateContextFromType</h3></div></div></div><p>デバイスの種類（CPU/GPU等）を指定してコンテキストを生成します。基本的にはclCreateContextFromと同じですが、cl_device_id型へのポインタを指定する必要がなくなる等、デバイスIDの取得をコンテキスト内のデバイスコマンドに分離することができます。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clCreateContextFromType」（<a class="xref" href="apbs10.html#clCreateContextFromType" title="表B.18 表：clCreateContextFromType">表B.18「表：clCreateContextFromType」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">cl_context org.jocl.CL.clCreateContextFromType(
+    cl_context_properties properties, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO23-1"></a>(1)
+    long device_type, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO23-2"></a>(2)
+    CreateContextFunction pfn_notify, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO23-3"></a>(3)
+    Object user_data, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO23-4"></a>(4)
+    int[] errcode_ret)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO23-1">(1)</a> </p></td><td valign="top" align="left"><p>
+コンテキストプロパティの名称と対応する値のリスト。各プロパティ名は対応する値がすぐに続く。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO23-2">(2)</a> </p></td><td valign="top" align="left"><p>
+デバイス型を識別するビットフィールド。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO23-3">(3)</a> </p></td><td valign="top" align="left"><p>
+clCreateContextで詳細は記述済み。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO23-4">(4)</a> </p></td><td valign="top" align="left"><p>
+適切なエラーコードを戻す。errcode_retがNULLの場合、エラーコードは戻さない。
+</p></td></tr></table></div><p>clCreateContextとclCreateContextFromTypeは暗黙的リテインをします。リテインはアプリケーションからコンテキストを渡される第三者のライブラリにとって有用です。</p><p>しかし、アプリケーションがライブラリに知らせずにコンテキストを削除する事態もありえます。コンテキストを意識して明示的にリテイン、リリースすれば、有効でなくなったライブラリに使用されるコンテキストの問題を解決できます。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clretaincontext"></a>8.3.4. clRetainContext</h3></div></div></div><p>clRetainContext関数はコンテキストの参照カウントをインクリメント。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳細については「表：clRetainContext」（<a class="xref" href="apbs10.html#clRetainContext" title="表B.19 表：clRetainContext">表B.19「表：clRetainContext」</a>）と「ソースコード例：context_helloworld_plus.cxx」(<a class="xref" href="">???</a>)を参照ください。</p></div><p>レファレンス参照をインクリメントします。以下の行はcontextの参照カウントを一つ増やします。</p><pre xmlns="" class="prettyprint">int org.jocl.CL.clRetainContext(
+    cl_context context)</pre><p>retainしたコンテキストは解放する必要があります。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clreleasecontext"></a>8.3.5. clReleaseContext</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳細については「表：clReleaseContext」（<a class="xref" href="apbs10.html#clReleaseContext" title="表B.20 表：clReleaseContext">表B.20「表：clReleaseContext」</a>）と「ソースコード例：context_helloworld_plus.cxx」(<a class="xref" href="">???</a>)を参照ください。</p></div><p>コンテキストのメモリ領域を解放するには、参照カウントを以下のようにデクリメントします。</p><pre xmlns="" class="prettyprint">int org.jocl.CL.clReleaseContext(
+    cl_context context)</pre><p>尚、JavaバインディングではOpenCLオブジェクトの解放は自動で行なわれます。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetcontextinfo"></a>8.3.6. clGetContextInfo</h3></div></div></div><p>clGetContextInfo関数はコンテキストについての情報の取得をします。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetContextInfo」（<a class="xref" href="apbs10.html#clGetContextInfo" title="表B.21 表：clGetContextInfo">表B.21「表：clGetContextInfo」</a>）と「表：cl_context_info」（<a class="xref" href="apbs10.html#cl_context_info" title="表B.22 表：cl_context_info">表B.22「表：cl_context_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetContextInfo(
+    cl_context context, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO24-1"></a>(1)
+    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO24-2"></a>(2)
+    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO24-3"></a>(3)
+    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO24-4"></a>(4)
+    long[] param_value_size_ret)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO24-1">(1)</a> </p></td><td valign="top" align="left"><p>
+情報を取得したいOpenCLコンテキストを指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO24-2">(2)</a> </p></td><td valign="top" align="left"><p>
+CL_CONTEXT_NUM_DEVICESやCL_CONTEXT_DEVICESのcl_context_infoを指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO24-3">(3)</a> </p></td><td valign="top" align="left"><p>
+戻ってくる情報より大きいメモリサイズを指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO24-4">(4)</a> </p></td><td valign="top" align="left"><p>
+戻り値のアドレスを指すポインタ
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_context_info"></a>8.3.7. cl_context_info</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳細は「表：cl_context_info」（<a class="xref" href="apbs10.html#cl_context_info" title="表B.22 表：cl_context_info">表B.22「表：cl_context_info」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch08s02.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch08.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

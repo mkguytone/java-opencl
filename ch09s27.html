@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.27. プロファイリング</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s26.html" title="9.26. マーカー・バリアー・イベント待機" /><link rel="next" href="ch09s28.html" title="9.28. Flush・Finish" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s26.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s28.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_プロファイリング"></a>9.27. プロファイリング</h2></div></div></div><p>コマンドキューへのコマンドとして挿入されるOpenCL関数のプロファイリング機能を説明します。</p><p>プロファイリングと関連する関数には以下のようなものがあります。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">clEnqueue{Read|Write|Map}Buffer</code>
+</li><li class="listitem">
+<code class="literal">clEnqueue{Read|Write}BufferRect</code>
+</li><li class="listitem">
+<code class="literal">clEnqueue{Read|Write|Map}Image</code>
+</li><li class="listitem">
+clEnqueueUnmapMemObject
+</li><li class="listitem">
+clEnqueueCopyBuffer
+</li><li class="listitem">
+clEnqueueCopyBufferRect
+</li><li class="listitem">
+clEnqueueCopyImage
+</li><li class="listitem">
+clEnqueueCopyImageToBuffer
+</li><li class="listitem">
+clEnqueueCopyBufferToImage
+</li><li class="listitem">
+clEnqueueNDRangeKernel
+</li><li class="listitem">
+clEnqueueTask
+</li><li class="listitem">
+clEnqueueNativeKernel
+</li></ul></div><p>これらの挿入コマンドは固有のイベントオブジェクトで識別されます。イベントオブジェクトはコマンドの実行時間の計測をするプロファイリング情報を捉えるために使われます。OpenCLコマンドのプロファイリングを有効にするには、command-queueを生成する際のプロパティのフラグの値にCL_QUEUE_PROFILING_ENABLEを設定します。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgeteventprofilinginfo"></a>9.27.1. clGetEventProfilingInfo</h3></div></div></div><p>clGetEventProfilingInfo関数はイベントに関連付けられたコマンドのプロファイリング情報を取得します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetEventProfilingInfo」（<a class="xref" href="apbs36.html#clGetEventProfilingInfo" title="表B.98 表：clGetEventProfilingInfo">表B.98「表：clGetEventProfilingInfo」</a>）と「表：cl_profiling_info」（<a class="xref" href="apbs36.html#cl_profiling_info" title="表B.99 表：cl_profiling_info">表B.99「表：cl_profiling_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetEventProfilingInfo(
+    cl_event event, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO99-1"></a>(1)
+    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO99-2"></a>(2)
+    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO99-3"></a>(3)
+    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO99-4"></a>(4)
+    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO99-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO99-1">(1)</a> </p></td><td valign="top" align="left"><p>
+イベントオブジェクトを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO99-2">(2)</a> </p></td><td valign="top" align="left"><p>
+取得するプロファイリング情報を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO99-3">(3)</a> </p></td><td valign="top" align="left"><p>
+取得する結果を戻すメモリ領域を指すポインタを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO99-4">(4)</a> </p></td><td valign="top" align="left"><p>
+param_valueが指すメモリ領域のバイトサイズを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO99-5">(5)</a> </p></td><td valign="top" align="left"><p>
+param_valueに複製されるデータの実際のバイトサイズを戻す。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_profiling_info"></a>9.27.2. cl_profiling_info</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_profiling_info」（<a class="xref" href="apbs36.html#cl_profiling_info" title="表B.99 表：cl_profiling_info">表B.99「表：cl_profiling_info」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s26.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s28.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

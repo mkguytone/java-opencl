@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>8.2. Deviceのクエリー</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch08.html" title="第8章 OpenCLホストAPI" /><link rel="prev" href="ch08s01.html" title="8.1. Platform" /><link rel="next" href="ch08s03.html" title="8.3. Context" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch08s01.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch08s03.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_deviceのクエリー"></a>8.2. Deviceのクエリー</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetdeviceids"></a>8.2.1. clGetDeviceIDs</h3></div></div></div><p>clGetDeviceIDs関数はプラットフォームで使用可能なデバイスを取得します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetDeviceIDs」（<a class="xref" href="apbs09.html#clGetDeviceIDs" title="表B.12 表：clGetDeviceIDs">表B.12「表：clGetDeviceIDs」</a>）と「表：cl_device_type」（<a class="xref" href="apbs09.html#cl_device_type" title="表B.13 表：cl_device_type">表B.13「表：cl_device_type」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetDeviceIDs(
+    cl_platform_id platform, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO19-1"></a>(1)
+    long device_type, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO19-2"></a>(2)
+    int num_entries, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO19-3"></a>(3)
+    cl_device_id[] devices, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO19-4"></a>(4)
+    int[] num_devices) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO19-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO19-1">(1)</a> </p></td><td valign="top" align="left"><p>
+プラットフォームを指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO19-2">(2)</a> </p></td><td valign="top" align="left"><p>
+デバイス型を指定（例：CL_DEVICE_TYPE_GPU）
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO19-3">(3)</a> </p></td><td valign="top" align="left"><p>
+devicesに追加可能なcl_device_idエントリの数
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO19-4">(4)</a> </p></td><td valign="top" align="left"><p>
+デバイスのコレクション配列
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO19-5">(5)</a> </p></td><td valign="top" align="left"><p>
+device_typeとマッチする有効なOpenCLデバイスの個数
+</p></td></tr></table></div><p>では関数の使用例を見てみましょう。以下は特定のプラットフォームに関連付けられた使用可能なデバイスを取得します。</p><pre xmlns="" class="prettyprint">err = clGetDeviceIDs(
+    platform, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO20-1"></a>(1)
+    CL_DEVICE_TYPE_GPU, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO20-2"></a>(2)
+    1, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO20-3"></a>(3)
+    device, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO20-4"></a>(4)
+    NULL); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO20-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO20-1">(1)</a> </p></td><td valign="top" align="left"><p>
+プラットフォームを指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO20-2">(2)</a> </p></td><td valign="top" align="left"><p>
+GPUデバイスを指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO20-3">(3)</a> </p></td><td valign="top" align="left"><p>
+エントリ数は1を指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO20-4">(4)</a> </p></td><td valign="top" align="left"><p>
+取得した値を戻す変数。cl_device_idのポインタを指定する。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO20-5">(5)</a> </p></td><td valign="top" align="left"><p>
+NULL値を設定すると無視。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_device_type"></a>8.2.2. cl_device_type</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_device_type」（<a class="xref" href="apbs09.html#cl_device_type" title="表B.13 表：cl_device_type">表B.13「表：cl_device_type」</a>）を参照ください。</p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetdeviceinfo"></a>8.2.3. clGetDeviceInfo</h3></div></div></div><p>clGetDeviceInfo関数はOpenCLデバイスについての情報を取得します。deviceに指定するデバイスはclGetDeviceIDsが戻すデバイス、またはclCreateSubDevicesで生成したサブデバイスです。device引数にサブデバイスを指定した場合は、サブデバイスに関する情報が戻ります。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetDeviceInfo」（<a class="xref" href="apbs09.html#clGetDeviceInfo" title="表B.14 表：clGetDeviceInfo">表B.14「表：clGetDeviceInfo」</a>）と「表：cl_device_info」（<a class="xref" href="apbs09.html#cl_device_info" title="表B.15 表：cl_device_info">表B.15「表：cl_device_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetDeviceInfo(
+    cl_device_id device, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO21-1"></a>(1)
+    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO21-2"></a>(2)
+    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO21-3"></a>(3)
+    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO21-4"></a>(4)
+    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO21-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO21-1">(1)</a> </p></td><td valign="top" align="left"><p>
+clGetDeviceIDsで取得したデバイス
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO21-2">(2)</a> </p></td><td valign="top" align="left"><p>
+取得する情報(例：CL_DEVICE_MAX_COMPUTE_UNITS)
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO21-3">(3)</a> </p></td><td valign="top" align="left"><p>
+param_valueが指す（バイトで表す）メモリサイズ
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO21-4">(4)</a> </p></td><td valign="top" align="left"><p>
+param_nameで指定した情報の値が戻すポインタオブジェクト。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO21-5">(5)</a> </p></td><td valign="top" align="left"><p>
+クエリーされるデータの実際の（バイトで表す）サイズ
+</p></td></tr></table></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a id="_実装例"></a>実装例</h4></div></div></div><p>clGetDeviceInfoを使ってデバイスが単精度浮動小数点演算をサポートするかクエリーをした例が以下のコードとなります。</p><pre xmlns="" class="prettyprint">package com.book.jocl.device;
+
+import static org.jocl.CL.*;
+
+import org.jocl.Pointer;
+import org.jocl.cl_device_id;
+import org.jocl.cl_platform_id;
+
+public class DeviceTest {
+
+        public static void main(String[] args) {
+                String str_result = null;
+
+                int platformArray[] = new int[1];
+                clGetPlatformIDs(0, null, platformArray);
+                int platformNum = platformArray[0];
+                cl_platform_id platforms[] = new cl_platform_id[platformNum];
+                clGetPlatformIDs(1, platforms, platformArray);
+
+                int deviceArray[] = new int[1];
+                clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_ALL, 0, null, deviceArray);
+                cl_device_id devices[] = new cl_device_id[deviceArray[0]];
+                clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_ALL, deviceArray[0], devices, null);
+
+                long size[] = new long[1];
+
+                for(int i = 0; i &lt; deviceArray[0]; i++) {
+                        clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 0, null, size);
+                        byte device_type[] = new byte[64];
+                        clGetDeviceInfo(devices[i], CL_DEVICE_NAME, size[0], Pointer.to(device_type), null);
+                        str_result = new String(device_type);
+                        System.out.println("CL_DEVICE_NAME: "+str_result);
+
+                        clGetDeviceInfo(devices[i], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, 0, null, size);
+                        long global_mem_cache_size[] = new long[1];
+                        clGetDeviceInfo(devices[i], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, size[0], Pointer.to(global_mem_cache_size), null);
+                        System.out.println("CL_DEVICE_GLOBAL_MEM_CACHE_SIZE: "+global_mem_cache_size[0]);
+
+                        clGetDeviceInfo(devices[i], CL_DEVICE_GLOBAL_MEM_SIZE, 0, null, size);
+                        long global_mem_size[] = new long[1];
+                        clGetDeviceInfo(devices[i], CL_DEVICE_GLOBAL_MEM_SIZE, size[0], Pointer.to(global_mem_size), null);
+                        System.out.println("CL_DEVICE_GLOBAL_MEM_SIZE: "+global_mem_size[0]);
+
+                        clGetDeviceInfo(devices[i], CL_DEVICE_LOCAL_MEM_SIZE, 0, null, size);
+                        long local_mem_size[] = new long[1];
+                        clGetDeviceInfo(devices[i], CL_DEVICE_LOCAL_MEM_SIZE, size[0], Pointer.to(local_mem_size),null);
+                        System.out.println("CL_DEVICE_LOCAAL_MEM_SIZE: "+local_mem_size[0]);
+
+                        clReleaseDevice(devices[i]);
+                }
+        }
+
+}</pre><p>以下が実行可能ファイルの出力となります。</p><pre xmlns="" class="prettyprint">CL_DEVICE_NAME: Intel(R) Core(TM) i5-3210M CPU @ 2.50GHz
+CL_DEVICE_GLOBAL_MEM_CACHE_SIZE: 64
+CL_DEVICE_GLOBAL_MEM_SIZE: 4294967296
+CL_DEVICE_LOCAAL_MEM_SIZE: 32768
+CL_DEVICE_NAME: HD Graphics 4000
+CL_DEVICE_GLOBAL_MEM_CACHE_SIZE: 0
+CL_DEVICE_GLOBAL_MEM_SIZE: 1610612736
+CL_DEVICE_LOCAAL_MEM_SIZE: 65536</pre></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_device_info"></a>8.2.4. cl_device_info</h3></div></div></div><p>clGetDeviceInfoの引数param_nameで指定できる情報と、それに対応した引数param_valueに戻される情報は「cl_device_info」で指定できます。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_device_info」（<a class="xref" href="apbs09.html#cl_device_info" title="表B.15 表：cl_device_info">表B.15「表：cl_device_info」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch08s01.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch08.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch08s03.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

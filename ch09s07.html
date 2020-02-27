@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.7. イメージオブジェクトのマッピング</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s06.html" title="9.6. イメージの読み込みと書き込み" /><link rel="next" href="ch09s08.html" title="9.8. イメージ情報取得" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s06.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s08.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_イメージオブジェクトのマッピング"></a>9.7. イメージオブジェクトのマッピング</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clenqueuemapimage"></a>9.7.1. clEnqueueMapImage</h3></div></div></div><p>clEnqueueMapImage関数はイメージオブジェクトの領域からホストアドレス空間へのマップを行いマップされた領域へのポインタを戻すコマンドを挿入します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueMapImage」（<a class="xref" href="apbs17.html#clEnqueueMapImage" title="表B.49 表：clEnqueueMapImage">表B.49「表：clEnqueueMapImage」</a>）と「表：cl_map_flags」（<a class="xref" href="apbs17.html#cl_map_flags" title="表B.50 表：cl_map_flags">表B.50「表：cl_map_flags」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">ByteBuffer org.jocl.CL.clEnqueueMapImage(
+    cl_command_queue command_queue, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-1"></a>(1)
+    cl_mem image, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-2"></a>(2)
+    boolean blocking_map, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-3"></a>(3)
+    long map_flags, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-4"></a>(4)
+    long[] origin, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-5"></a>(5)
+    long[] region, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-6"></a>(6)
+    long[] image_row_pitch, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-7"></a>(7)
+    long[] image_slice_pitch, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-8"></a>(8)
+    int num_events_in_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-9"></a>(9)
+    cl_event[] event_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-10"></a>(10)
+    cl_event event, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-11"></a>(11)
+    int[] errcode_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-12"></a>(12)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-1">(1)</a> </p></td><td valign="top" align="left"><p>
+マップコマンドを挿入するコマンドキューを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-2">(2)</a> </p></td><td valign="top" align="left"><p>
+有効なイメージオブジェクトを指定。command_queueとimageと関連付けられたOpenCLコンテキストは同じとなる必要がある。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-3">(3)</a> </p></td><td valign="top" align="left"><p>
+マップ操作を、ブロッキングで行うのかノンブロッキングで行うのかを指定。blocking_mapにCL_TRUEを指定すると、imageの指定した領域がホストアドレス空間にマップされるまでclEnqueueMapImageは戻らない。アプリケーションはclEnqueueMapImageから戻るポインタを使用してマップされた領域にアクセスできる。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-4">(4)</a> </p></td><td valign="top" align="left"><p>
+マップの設定を行うビットフィールド。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-5">(5)</a> </p></td><td valign="top" align="left"><p>
+1D、2D、3Dイメージ内の(x,y,z)オフセットをピクセルで指定。2Dイメージ配列内の(x,y)オフセットとイメージインデックスを指定。1Dイメージ配列内の(x)オフセットとイメージインデックスを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-6">(6)</a> </p></td><td valign="top" align="left"><p>
+1D、2D、3D矩形領域の(width, height, depth) をピクセルで定義。2D矩形領域の(width, height)をピクセルで定義し、2Dイメージ配列のイメージ個数の定義。1D矩形領域の(width)をピクセルで定義し、1Dイメージ配列のイメージ個数を定義。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-7">(7)</a> </p></td><td valign="top" align="left"><p>
+マップされる領域での走査線の長さをバイトで返します。非NULLの値を指定する必要がある。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-8">(8)</a> </p></td><td valign="top" align="left"><p>
+マップされる領域での3Dイメージの2Dスライスのサイズ、または1D/2Dイメージ、1D/2Dイメージ配列のサイズをバイトで戻す。imageが2Dイメージオブジェクトでこの引数がNULLでない場合、0が戻される。imageが3Dイメージオブジェクト、1D/2Dイメージ配列である場合
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-9">(9)</a> </p></td><td valign="top" align="left"><p>
+event_wait_list で指定したイベントオブジェクトの数を指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-10">(10)</a> </p></td><td valign="top" align="left"><p>
+このコマンドが実行される前に完了されているイベントを指定。event_wait_listがNULLの場合、このコマンドはどのイベントの完了待機もしない。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-11">(11)</a> </p></td><td valign="top" align="left"><p>
+マップコマンドを識別するイベントオブジェクトが戻され、コマンド完了の確認やコマンド完了の待機に使える。eventがNULLの場合、アプリケーションはコマンドの状況確認やコマンド完了待ちができなくなる。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-12">(12)</a> </p></td><td valign="top" align="left"><p>
+適切なエラーコードを返します。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_map_flags"></a>9.7.2. cl_map_flags</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueMapImage」（<a class="xref" href="apbs17.html#clEnqueueMapImage" title="表B.49 表：clEnqueueMapImage">表B.49「表：clEnqueueMapImage」</a>）と「表：cl_map_flags」（<a class="xref" href="apbs17.html#cl_map_flags" title="表B.50 表：cl_map_flags">表B.50「表：cl_map_flags」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s06.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s08.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

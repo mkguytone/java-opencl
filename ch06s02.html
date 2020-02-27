@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>6.2. Pointerオブジェクト</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch06.html" title="第6章 JOCL" /><link rel="prev" href="ch06s01.html" title="6.1. java.nio.Buffer" /><link rel="next" href="ch07.html" title="第7章 HelloWorldプログラム" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch06s01.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch07.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_pointerオブジェクト"></a>6.2. Pointerオブジェクト</h2></div></div></div><p>org.jocl.Pointerは、C/C++のvoidポインタをJavaのオブジェクトにラップしたものです。基本的にこのPointerオブジェクトはスタティックファクトリメソッドとコンストラクタを持つだけのシンプルなオブジェクトです。Pointerオブジェクト自体は、voidポインタ、Cポインタを理解することは不要です。</p><pre xmlns="" class="prettyprint">public final class Pointer extends NativePointerObject</pre><p>Pointerオブジェクトは複数のコンストラクタを持ちますが、バッファを指すポインタを生成するのが役割です。</p><pre xmlns="" class="prettyprint">protected Pointer(Buffer buffer)
+{
+    super(buffer);
+}</pre><p>親クラスであるNativePointerObjectのコンストラクタは以下のようになっています。</p><pre xmlns="" class="prettyprint">private NativePointerObject pointers[];
+
+NativePointerObject(Buffer buffer)
+{
+    this.buffer = buffer;
+    pointers = null;
+    byteOffset = 0;
+}</pre><p>このコンストラクタは引数bufferを指すポインタオブジェクトを生成します。つまりオフセット0のバッファオブジェクトを生成しています。</p><p>最後にPointerオブジェクトのスタティックファクトリメソッドについても軽く紹介させていただきます。メソッド名は「to」か「toXXX」という名称で、以下のようにバッファオブジェクトを指すPointerオブジェクトを生成しています。</p><pre xmlns="" class="prettyprint">public static Pointer to(byte values[])
+{
+    return new Pointer(ByteBuffer.wrap(values));
+}
+
+public static Pointer to(int values[])
+{
+    return new Pointer(IntBuffer.wrap(values));
+}
+
+public static Pointer to(float values[])
+{
+    return new Pointer(FloatBuffer.wrap(values));
+}</pre><p>これらのファクトリーメソッドの呼び出しは以下のようにします。</p><pre xmlns="" class="prettyprint">int[] data = new int[]{1,2,3}
+Pointer.to(data)</pre><p>これだけでint/float/byteなどのプリミティブ型を指すポインタオブジェクトの生成ができます。</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch06s01.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch06.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

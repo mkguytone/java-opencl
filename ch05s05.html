@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>5.5. ハローワールド (JNA)</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch05.html" title="第5章 JNA(Java Native Access)" /><link rel="prev" href="ch05s04.html" title="5.4. Java・Cとネイティブ型の対応" /><link rel="next" href="ch05s06.html" title="5.6. ビルド" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch05s04.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch05s06.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_ハローワールド_jna"></a>5.5. ハローワールド (JNA)</h2></div></div></div><p>Java Native Accessの実装例を見てみましょう。</p><p>まず実装するのは OpenCL ライブラリを使用した C 言語のソースコードです。</p><p><strong>HelloJNA.c. </strong>
+</p><pre xmlns="" class="prettyprint">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;OpenCL/cl.h&gt;
+#include &lt;assert.h&gt;
+
+int square(int num) {
+        return num*num;
+}
+
+int squareArray(int* num) {
+        int i,sum = 0;
+        for(i = 0; i&lt;3; i++) {
+                num[i] *= num[i];
+                sum += num[i];
+        }
+        return sum;
+}
+
+const char* helloReply(const char* msg) {
+        printf("%s\n",msg);
+        msg = "I'm from C language!";
+        return msg;
+}
+
+const char* checkDevice() {
+        cl_platform_id platform;
+        cl_device_id *devices;
+        cl_uint num_devices;
+        cl_int i, err;
+        char *name_data = malloc(sizeof(char)*48);
+        err = clGetPlatformIDs(1,
+                        &amp;platform, NULL);
+        if(err &lt; 0) {
+          perror("failed to find platforms");
+          exit(1);
+        }
+        err = clGetDeviceIDs(platform,
+                        CL_DEVICE_TYPE_ALL,
+                        1, NULL, &amp;num_devices);
+        if(err &lt; 0) {
+          perror("Failed to find devices");
+          exit(1);
+        }
+        devices = (cl_device_id*)
+                 malloc(sizeof(cl_device_id) * num_devices);
+        clGetDeviceIDs(platform,
+                        CL_DEVICE_TYPE_ALL,
+                        num_devices,
+                        devices, NULL);
+
+        for(i=0; i&lt;num_devices; i++) {
+          err = clGetDeviceInfo(devices[i],
+                          CL_DEVICE_NAME,
+                        sizeof(char)*48, name_data, NULL);
+          if(err &lt; 0) {
+                  perror("Failed to read device name");
+                  exit(1);
+          }
+          printf("CL_DEVICE_NAME: %s\n",name_data);
+          clReleaseDevice(devices[i]);
+        }
+
+        free(devices);
+        return name_data;
+}
+
+void destroy(char* data) {
+        assert(NULL != data);
+        free(data);
+}</pre><p>
+</p><p>このソースコードは OpenCL ライブラリを使った C 言語でストレートに実装しています。</p><p>ヘッダーファイルを作らないといけない JNI に比べるとこれは大きな利点となります。</p><p>次に Java サイドの実装を見てみましょう。</p><p>JNAの実装の基本部分は「com.sun.jna.Library」を実装したインターフェースを作ることからはじめます。</p><p>インターフェース内に、C言語のソースで定義した関数に対応したメソッドを宣言します。</p><p>最後にインターフェースのインスタンスを生成して、メソッドを呼び出せば一連の実装は完了となります。</p><p><strong>HelloJNA.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl;
+
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.PointerType;
+import com.sun.jna.ptr.ByteByReference;
+
+interface HelloLib extends Library { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO11-1"></a>(1)
+        HelloLib Instance = (HelloLib) Native.loadLibrary("hello", HelloLib.class); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO11-2"></a>(2)
+
+        ByteByReference checkDevice(); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO11-3"></a>(3)
+        int square(int num);
+        int squareArray(int[] array);
+        ByteByReference helloReply(String msg);
+        void destroy(Pointer ptr);
+}
+
+public class HelloJNA {
+
+        public static void main(String[] args) {
+                HelloLib hello = HelloLib.Instance; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO11-4"></a>(4)
+                ByteByReference dev_info = hello.checkDevice(); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO11-5"></a>(5)
+                Pointer dev_ptr = dev_info.getPointer(); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO11-6"></a>(6)
+                String dev_str = dev_ptr.getString(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO11-7"></a>(7)
+                System.out.println("checkDevice function returns: "+dev_str);
+                hello.destroy(dev_ptr); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO11-8"></a>(8)
+
+                int squared = hello.square(5);
+                System.out.println(squared);
+                int squaredArray[] = new int[10];
+                for(int i =0; i &lt; 3; i++) {
+                        squaredArray[i] = i+1;
+                }
+                int returnedSquare = hello.squareArray(squaredArray);
+                System.out.println(returnedSquare);
+                ByteByReference reply = hello.helloReply("Hello World! JNA!");
+                Pointer ptr = reply.getPointer();
+                String str = ptr.getString(0);
+                System.out.println(str);
+
+        }
+
+}</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO11-1">(1)</a> </p></td><td valign="top" align="left"><p>
+JNAインターフェースはLibraryクラスを継承します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO11-2">(2)</a> </p></td><td valign="top" align="left"><p>
+hello.dll、libhello.so、libhello.dylibを検索して、ネイティブライブラリの関数を指すポインタを作ります。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO11-3">(3)</a> </p></td><td valign="top" align="left"><p>
+ネイティブライブラリの関数プロトタイプを宣言します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO11-4">(4)</a> </p></td><td valign="top" align="left"><p>
+インターフェースのインスタンスを取得します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO11-5">(5)</a> </p></td><td valign="top" align="left"><p>
+メンバー関数を呼び出します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO11-6">(6)</a> </p></td><td valign="top" align="left"><p>
+ByteByReferenceからポインタを取得します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO11-7">(7)</a> </p></td><td valign="top" align="left"><p>
+ポインタから文字列を取得します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO11-8">(8)</a> </p></td><td valign="top" align="left"><p>
+確保したメモリ領域を解放します。
+</p></td></tr></table></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s04.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s06.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>8.1. Platform</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch08.html" title="第8章 OpenCLホストAPI" /><link rel="prev" href="ch08.html" title="第8章 OpenCLホストAPI" /><link rel="next" href="ch08s02.html" title="8.2. Deviceのクエリー" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch08.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch08s02.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_platform"></a>8.1. Platform</h2></div></div></div><p>プラットフォームはOpenCLではヘテロジニアスなシステム環境を記述します。プラットフォームは、一つ以上のOpenCLデバイス、各デバイスベンダーが実装したOpenCLフレームワークからなります。</p><p>システム上に複数のOpenCL実装ライブラリがある場合や、複数のプロセッサが混在することを考えてください。各デバイスへアクセスするには、利用可能なOpenCLフレームワークを検知しなくてはいけません。プラットフォームは異種のライブラリやデバイスを識別するためのインターフェースであり、まずこのPlatform APIを呼び出してシステム環境の管理をします。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetplatformids"></a>8.1.1. clGetPlatformIDs</h3></div></div></div><p>clGetPlatformIDs関数は現在利用可能なOpenCLのプラットフォームの情報を取得します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetPlatformIDs」（<a class="xref" href="apbs08.html#clGetPlatformIDs" title="表B.9 表：clGetPlatformIDs">表B.9「表：clGetPlatformIDs」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetPlatformIDs(
+    int num_entries, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO17-1"></a>(1)
+    cl_platform_id[] platforms, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO17-2"></a>(2)
+    int[] num_platforms) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO17-3"></a>(3)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO17-1">(1)</a> </p></td><td valign="top" align="left"><p>
+platforms引数に追加可能なcl_platform_idエントリーの数を指定。platforms引数がNULL以外のときは、num_entriesは0より大きな値となる必要があります。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO17-2">(2)</a> </p></td><td valign="top" align="left"><p>
+検知したOpenCLプラットフォームのリストを戻します。platforms内に戻されたcl_platform_id値は特定のOpenCLプラットフォームを指定するために使います。platforms引数がNULL値のときは無視されます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO17-3">(3)</a> </p></td><td valign="top" align="left"><p>
+取得可能なOpenCLプラットフォームの数を戻します。num_platforms引数がNULLのときは無視されます。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetplatforminfo"></a>8.1.2. clGetPlatformInfo</h3></div></div></div><p>clGetPlatformInfo関数はOpenCLプラットフォームについてユーザーが指定した情報を取得します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetPlatformInfo」（<a class="xref" href="apbs08.html#clGetPlatformInfo" title="表B.10 表：clGetPlatformInfo">表B.10「表：clGetPlatformInfo」</a>）と「表：cl_platform_info」（<a class="xref" href="apbs08.html#cl_platform_info" title="表B.11 表：cl_platform_info">表B.11「表：cl_platform_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetPlatformInfo(
+    cl_platform_id platform, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO18-1"></a>(1)
+    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO18-2"></a>(2)
+    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO18-3"></a>(3)
+    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO18-4"></a>(4)
+    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO18-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO18-1">(1)</a> </p></td><td valign="top" align="left"><p>
+clGetPlatformIDsで取得したプラットフォームIDまたはNULL値。platform引数がNULLの場合のふるまいは実装システムに依存します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO18-2">(2)</a> </p></td><td valign="top" align="left"><p>
+クエリーするプラットフォームの情報を識別する列挙定数です。定数は以下のテーブルに掲載しています。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO18-3">(3)</a> </p></td><td valign="top" align="left"><p>
+param_valueが指すメモリのサイズ（バイトで表す）。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO18-4">(4)</a> </p></td><td valign="top" align="left"><p>
+param_nameで指定したデータのための記憶域のポインタオブジェクトです。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO18-5">(5)</a> </p></td><td valign="top" align="left"><p>
+param_valueでクエリーしたデータの実際のサイズです。param_value_size_retがNULL値のときは無視されます。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_platform_info"></a>8.1.3. cl_platform_info￼</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_platform_info」（<a class="xref" href="apbs08.html#cl_platform_info" title="表B.11 表：cl_platform_info">表B.11「表：cl_platform_info」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch08.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch08.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch08s02.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>
