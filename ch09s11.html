@@ -1,129 +1,65 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.11. バッファオブジェクトのマップ</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s10.html" title="9.10. バッファーの読み込み・書き込み・コピー" /><link rel="next" href="ch09s12.html" title="9.12. オブジェクトのライフサイクル" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.11. サンプラーオブジェクト</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s10.html" title="9.10. イメージ情報取得" /><link rel="next" href="ch09s12.html" title="9.12. プログラムオブジェクト" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s10.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s12.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_バッファオブジェクトのマップ_2"></a>9.11. バッファオブジェクトのマップ</h2></div></div></div><p>バッファオブジェクトのマップは、ホストメモリとデバイス（カーネルインスタンスからアクセス可能なメモリ）のデータ同期を行ないます。</p><p>外部（PCIe等）ボード上のGPUデバイスでマップをするのは負荷が高いため、GeForce/Tesla/Radeon/FuryといったNVIDIAやAMDのデバイスでは通常は行なわない処理です。</p><p>反面Intelの内蔵GPUボード、AMDのAPUでは、CPUとGPUがホストメモリを共有するため、バッファをコピーするより負荷を軽減する効果を持ちます。いわゆるゼロコピーなため、効率的な実行処理が可能となります。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clenqueuemapbuffer_2"></a>9.11.1. clEnqueueMapBuffer</h3></div></div></div><p>clEnqueueMapBuffer関数はバッファオブジェクトの領域からホストアドレス空間へのマップを行いマップされた領域へのポインタを戻すコマンドを挿入します。マップされた領域は、バッファオブジェクトの領域と、ホストメモリで１対１で対応するコピーを保持します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueMapBuffer」（<a class="xref" href="apbs14.html#clEnqueueMapBuffer" title="表B.36 表：clEnqueueMapBuffer">表B.36「表：clEnqueueMapBuffer」</a>）と「表：cl_map_flags」（<a class="xref" href="apbs17.html#cl_map_flags" title="表B.50 表：cl_map_flags">表B.50「表：cl_map_flags」</a>）を参照ください。</p></div><p>関数の定義は以下のようになります。</p><pre xmlns="" class="prettyprint">ByteBuffer org.jocl.CL.clEnqueueMapBuffer(
-    cl_command_queue command_queue, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-1"></a>(1)
-    cl_mem buffer, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-2"></a>(2)
-    boolean blocking_map, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-3"></a>(3)
-    long map_flags, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-4"></a>(4)
-    long offset, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-5"></a>(5)
-    long cb, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-6"></a>(6)
-    int num_events_in_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-7"></a>(7)
-    cl_event[] event_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-8"></a>(8)
-    cl_event event, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-9"></a>(9)
-    int[] errcode_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO68-10"></a>(10)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-1">(1)</a> </p></td><td valign="top" align="left"><p>
-マップコマンドを挿入するコマンドキューを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-2">(2)</a> </p></td><td valign="top" align="left"><p>
-有効なバッファオブジェクトを指定。command_queueとbuffer は同じOpenCLコンテキスト上で作成されている必要がある。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-3">(3)</a> </p></td><td valign="top" align="left"><p>
-マップ操作をブロッキングまたはノンブロッキングで行うかを指定。blocking_mapにCL_TRUE を指定する場合、bufferの指定した領域がマップされるまでclEnqueueMapBufferは戻らない。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-4">(4)</a> </p></td><td valign="top" align="left"><p>
-マップの設定を行うビットフィールド。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-5">(5)</a> </p></td><td valign="top" align="left"><p>
-バッファオブジェクトのマップを行う際に、マップの開始位置をどれだけずらすかをバイトで指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-6">(6)</a> </p></td><td valign="top" align="left"><p>
-マップする領域のサイズをバイトで指定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-7">(7)</a> </p></td><td valign="top" align="left"><p>
-event_wait_list で指定したイベントオブジェクトの数を指定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-8">(8)</a> </p></td><td valign="top" align="left"><p>
-このコマンドが実行される前に完了していなければならないイベントを指定。
-event_wait_listがNULLの場合、このコマンドはどのイベントの完了待機もしない。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-9">(9)</a> </p></td><td valign="top" align="left"><p>
-このコマンドを識別するイベントオブジェクトが戻され、コマンド完了の確認やコマンド完了待機をする。eventがNULLの場合、アプリケーションはコマンドの状況確認やコマンド完了待ちを行えない。代わりに、clEnqueueBarrierWithWaitListを使うことができる。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO68-10">(10)</a> </p></td><td valign="top" align="left"><p>
-適切なエラーコードを戻す。errcode_retがNULLの場合、エラーコードは戻さない。
-</p></td></tr></table></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>OpenCLイメージを解説した項目にcl_map_flags(<a class="xref" href="apbs17.html#cl_map_flags" title="表B.50 表：cl_map_flags">表B.50「表：cl_map_flags」</a>)を解説した項目があるので詳細はそちらを参照ください。</p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a id="_実装例_9"></a>実装例</h4></div></div></div><p>clEnqueueMapBufferは内蔵型GPUを使う場合は推奨設定となります。つまりCopyやReadと名前のつく関数よりも効率的なバッファへのアクセスが可能となります。</p><p>マップコマンドは同期を行いますが、いつ同期が行なわれるかタイミングの面で保証がありません。そのためカーネルコマンド実行後にマップをするのが一般的な用例となります。</p><div class="important" style="margin-left: 0; margin-right: 10%;"><h3 class="title">重要</h3><p>この項目ではカーネルの実行をする例はありませんが、マップコマンドのキューへの挿入は、カーネル実行後に行なうようにしてください。マップはパフォーマンス的にボトルネックとなりえるので、不用意に使用しないでください。</p></div><p>以下がコード例となります。</p><pre xmlns="" class="prettyprint">ByteBuffer output = clEnqueueMapBuffer(queue,
-        data_mem,
-        CL_TRUE,
-        CL_MAP_WRITE,
-        0,
-        Sizeof.cl_int*SIZE,
-        0,
-        null,
-        null,
-        null);</pre><p>mapする変数（output）は手動でメモリ領域を確保できませんので、clEnqueueMapBufferが自動で領域を割り当てます。</p><p>マップ済みのオブジェクトについては、不要になり次第clEnqueueUnmapMemObjectを呼び出してください。</p><pre xmlns="" class="prettyprint">clEnqueueUnmapMemObject(queue, data_mem, output, 0, null, null);</pre><p>unmapコマンドを実行することにより変更内容がデバイスの持つメモリーに送られます。さらにunmapコマンドは、マップカウントをデクリメントしますので、マップ後にunmapを行なうことで、カウントをゼロに戻すことができます。</p><p>それではclEnqueueMapBufferを実装したサンプルソースコードを見てみましょう。</p><pre xmlns="" class="prettyprint">package com.book.jocl.buffer;
-
-import static org.jocl.CL.*;
-
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
-import org.jocl.CL;
-import org.jocl.Pointer;
-import org.jocl.Sizeof;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_context_properties;
-import org.jocl.cl_device_id;
-import org.jocl.cl_mem;
-import org.jocl.cl_platform_id;
-import org.jocl.cl_program;
-
-public class FillMapBufferTest {
-
-        private static final int SIZE = 4;
-
-    private static cl_context context;
-    private static cl_command_queue queue;
-    private static cl_program program;
-
-        public static void main(String[] args) throws Exception {
-
-                CL.setExceptionsEnabled(true);
-
-                cl_platform_id[] platform = new cl_platform_id[1];
-                cl_device_id[] device = new cl_device_id[1];
-                int[] num_devices = new int[1];
-
-                clGetPlatformIDs(1, platform, null);
-                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, num_devices);
-
-                cl_context_properties props = new cl_context_properties();
-                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
-                context = clCreateContext(props, 1, device, null, null, null);
-
-                queue = clCreateCommandQueue(context, device[0], 0, null);
-
-                cl_mem data_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                                Sizeof.cl_int * SIZE, null, null);
-
-                int[] pattern = new int[] {1};
-                clEnqueueFillBuffer(queue, data_mem, Pointer.to(pattern), Sizeof.cl_int, 0, Sizeof.cl_int*SIZE, 0, null, null);
-
-
-                ByteBuffer output = clEnqueueMapBuffer(queue,
-                                data_mem,
-                                CL_TRUE,
-                                CL_MAP_WRITE,
-                                0,
-                                Sizeof.cl_int*SIZE,
-                                0,
-                                null,
-                                null,
-                                null);
-
-                clEnqueueUnmapMemObject(queue, data_mem, output, 0, null, null);
-                clFinish(queue);
-
-                output.order(ByteOrder.LITTLE_ENDIAN);
-
-                for(int j = 0; j &lt; SIZE; ++j) {
-                        System.out.println(output.getInt());
-                }
-
-                clReleaseMemObject(data_mem);
-                clReleaseDevice(device[0]);
-                clReleaseContext(context);
-                clReleaseCommandQueue(queue);
-                clReleaseProgram(program);
-        }
-
-}</pre><p>上記のプログラムの出力は以下のようになります。</p><pre xmlns="" class="prettyprint">1
-1
-1
-1</pre></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s10.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s12.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s10.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s12.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_サンプラーオブジェクト"></a>9.11. サンプラーオブジェクト</h2></div></div></div><p>カーネルでイメージを読み込む際に、サンプラーオブジェクトはイメージのサンプリングのしかたを記述します。カーネル内でイメージを読み込むための組込み関数はサンプラーを引数としてとります。イメージ読み込み関数で使うサンプラー引数はOpenCL関数で生成したサンプラーオブジェクトで、カーネルに引数として渡すことができ、サンプラーをカーネルで宣言することもできます。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clcreatesampler"></a>9.11.1. clCreateSampler</h3></div></div></div><p>clCreateSampler関数はサンプラオブジェクトを生成します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clCreateSampler」（<a class="xref" href="apbs19.html#clCreateSampler" title="表B.53 表：clCreateSampler">表B.53「表：clCreateSampler」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">cl_sampler org.jocl.CL.clCreateSampler(
+    cl_context context, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO60-1"></a>(1)
+    boolean normalized_coords, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO60-2"></a>(2)
+    int addressing_mode, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO60-3"></a>(3)
+    int filter_mode, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO60-4"></a>(4)
+    int[] errcode_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO60-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO60-1">(1)</a> </p></td><td valign="top" align="left"><p>
+有効なOpenCLコンテキストを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO60-2">(2)</a> </p></td><td valign="top" align="left"><p>
+イメージ座標が正規化されるかどうか決定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO60-3">(3)</a> </p></td><td valign="top" align="left"><p>
+イメージから読み込む際に範囲外イメージ座標が処理される方法を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO60-4">(4)</a> </p></td><td valign="top" align="left"><p>
+イメージから読み込む際に適用されるフィルター型を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO60-5">(5)</a> </p></td><td valign="top" align="left"><p>
+適切なエラーコードを戻す
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">
+normalized_coords
+</span></dt><dd>
+イメージ座標が正規化されるかどうか決定。（CL_TRUEで正規化、CL_FALSEで非正規化）
+</dd><dt><span class="term">
+addressing_mode
+</span></dt><dd><p class="simpara">
+イメージから読み込む際に範囲外イメージ座標が処理される方法を指定。以下の値をとる。
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+CL_ADDRESS_MIRRORED_REPEAT
+</li><li class="listitem">
+CL_ADDRESS_REPEAT
+</li><li class="listitem">
+CL_ADDRESS_CLAMP_TO_EDGE
+</li><li class="listitem">
+CL_ADDRESS_CLAMP
+</li><li class="listitem">
+CL_ADDRESS_NONE
+</li></ul></div></dd><dt><span class="term">
+filter_mode
+</span></dt><dd><p class="simpara">
+イメージから読み込む際に適用されるフィルター型を指定。次の値のいずれかをとる。
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+CL_FILTER_NEAREST
+</li><li class="listitem">
+CL_FILTER_LINEAR
+</li></ul></div></dd></dl></div></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clretainsampler"></a>9.11.2. clRetainSampler</h3></div></div></div><p>clRetainSampler関数はサンプラーの参照カウントをインクリメント。暗黙的リテインをする。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clRetainSampler」（<a class="xref" href="apbs19.html#clRetainSampler" title="表B.54 表：clRetainSampler">表B.54「表：clRetainSampler」</a>）を参照ください。</p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clreleasesampler"></a>9.11.3. clReleaseSampler</h3></div></div></div><p>clReleaseSampler関数はサンプラーの参照カウントをデクリメント。サンプラーオブジェクトは参照カウントが0になり、コマンドキューに挿入されたサンプラを使うコマンドの実行が終了すると削除されます。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>「表：clReleaseSampler」（<a class="xref" href="apbs19.html#clReleaseSampler" title="表B.55 表：clReleaseSampler">表B.55「表：clReleaseSampler」</a>）を参照ください。</p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetsamplerinfo"></a>9.11.4. clGetSamplerInfo</h3></div></div></div><p>clGetSamplerInfo関数はサンプラーオブジェクトについての情報を取得します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetSamplerInfo」（<a class="xref" href="apbs19.html#clGetSamplerInfo" title="表B.56 表：clGetSamplerInfo">表B.56「表：clGetSamplerInfo」</a>）と「表：cl_sampler_info」（<a class="xref" href="apbs19.html#cl_sampler_info" title="表B.57 表：cl_sampler_info">表B.57「表：cl_sampler_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetSamplerInfo(
+    cl_sampler sampler, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO61-1"></a>(1)
+    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO61-2"></a>(2)
+    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO61-3"></a>(3)
+    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO61-4"></a>(4)
+    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO61-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO61-1">(1)</a> </p></td><td valign="top" align="left"><p>
+サンプラーを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO61-2">(2)</a> </p></td><td valign="top" align="left"><p>
+取得する情報を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO61-3">(3)</a> </p></td><td valign="top" align="left"><p>
+param_valueが指すメモリのサイズをバイトで指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO61-4">(4)</a> </p></td><td valign="top" align="left"><p>
+param_nameに指定した情報についての値が返されるメモリ空間へのポインタ
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO61-5">(5)</a> </p></td><td valign="top" align="left"><p>
+param_valueにコピーされるデータの実際のサイズをバイトで戻す。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_sampler_info"></a>9.11.5. cl_sampler_info</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetSamplerInfo」（<a class="xref" href="apbs19.html#clGetSamplerInfo" title="表B.56 表：clGetSamplerInfo">表B.56「表：clGetSamplerInfo」</a>）と「表：cl_sampler_info」（<a class="xref" href="apbs19.html#cl_sampler_info" title="表B.57 表：cl_sampler_info">表B.57「表：cl_sampler_info」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s10.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s12.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

@@ -1,344 +1,48 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.24. カーネルの実行</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s23.html" title="9.23. カーネルオブジェクト情報の取得" /><link rel="next" href="ch09s25.html" title="9.25. イベントオブジェクト" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.24. プロファイリング</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s23.html" title="9.23. マーカー・バリアー・イベント待機" /><link rel="next" href="ch09s25.html" title="9.25. Flush・Finish" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s23.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s25.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_カーネルの実行"></a>9.24. カーネルの実行</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clenqueuendrangekernel"></a>9.24.1. clEnqueueNDRangeKernel</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueNDRangeKernel」（<a class="xref" href="apbs33.html#clEnqueueNDRangeKernel" title="表B.88 表：clEnqueueNDRangeKernel">表B.88「表：clEnqueueNDRangeKernel」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clEnqueueNDRangeKernel(
-    cl_command_queue command_queue, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-1"></a>(1)
-    cl_kernel kernel, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-2"></a>(2)
-    int work_dim, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-3"></a>(3)
-    long[] global_work_offset, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-4"></a>(4)
-    long[] global_work_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-5"></a>(5)
-    long[] local_work_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-6"></a>(6)
-    int num_events_in_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-7"></a>(7)
-    cl_event[] event_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-8"></a>(8)
-    cl_event event) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-9"></a>(9)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-1">(1)</a> </p></td><td valign="top" align="left"><p>
-有効なコマンドキューを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-2">(2)</a> </p></td><td valign="top" align="left"><p>
-有効なカーネルオブジェクトを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-3">(3)</a> </p></td><td valign="top" align="left"><p>
-グローバルワークアイテム数とワークグループ内のワークアイテム数を決定する際の次元数を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-4">(4)</a> </p></td><td valign="top" align="left"><p>
-要素数work_dimの配列でワークアイテムのグローバルIDを決定する際のオフセット値を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-5">(5)</a> </p></td><td valign="top" align="left"><p>
-要素数work_dimの配列で、カーネル関数を実行するwork_dim次元のグローバルワークアイテムの個数を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-6">(6)</a> </p></td><td valign="top" align="left"><p>
-要素数work_dimの配列で、カーネル関数を実行する各ワークグループを構成するワークアイテムの数（ワークグループのサイズとも呼ぶ）を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-7">(7)</a> </p></td><td valign="top" align="left"><p>
-event_wait_listで指定したイベントオブジェクトの数を指定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-8">(8)</a> </p></td><td valign="top" align="left"><p>
-このコマンドが実行される前に完了されているイベントを指定
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-9">(9)</a> </p></td><td valign="top" align="left"><p>
-カーネルコマンドを識別するイベントオブジェクトが戻され、コマンド完了の確認やコマンド完了の待機に使える。
-</p></td></tr></table></div><p>clEnqueueNDRangeKernelを実装する際に一番判断に迷うのは、以下の３つの引数です。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
-global_offset
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s23.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s25.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_プロファイリング"></a>9.24. プロファイリング</h2></div></div></div><p>コマンドキューへのコマンドとして挿入されるOpenCL関数のプロファイリング機能を説明します。</p><p>プロファイリングと関連する関数には以下のようなものがあります。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">clEnqueue{Read|Write|Map}Buffer</code>
 </li><li class="listitem">
-global_work_size
+<code class="literal">clEnqueue{Read|Write}BufferRect</code>
 </li><li class="listitem">
-local_work_size
-</li></ul></div><p>オフセットは作業したいデータの位置や、アルゴリズムの設計により恣意的に開発者が決めるものですが、原則として(0,0,0)で支障はないかと思います。</p><p>グローバルワークサイズ引数についても同様ですが、一般にワークサイズは２の冪乗としてください。これはプロセッサの演算ユニットをなるべき多く使うための最も基本的な処方箋です。プロセッサを有効に使うためには、できるだけ多くのグローバルワークサイズ引数があったほうが良いです。</p><p>ローカルワークサイズ引数は、IntelのGPUであれば64〜128個とします。ローカルワークサイズを決定する際に覚えておきたい点は、ローカルワークサイズは、ワークグループ数を決めるということです。</p><p>例えば1024個のグローバルワークサイズに対して、128個のワークグループ数を考えてみましょう。この場合のワークグループ数は8個（1024/128）となります。しかしローカルワークサイズが大きいと、共有ローカルメモリのサイズが肥大化して、推奨されるメモリ使用量の閾値（Intelは4K）を超える可能性が高くなります。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳細は 「ワークグループ数とワークグループサイズの最適化」（<a class="xref" href="ch02s13.html#workgroup_optimization" title="表2.13 ワークグループ数とワークグループサイズの最適化">表2.13「ワークグループ数とワークグループサイズの最適化」</a>） を参照ください。</p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a id="workgroup-sample"></a>実装例</h4></div></div></div><p><strong>work_helloworld.cxx. </strong>
-</p><pre xmlns="" class="prettyprint">package com.book.jocl.kernel_execution;
-
-import static org.jocl.CL.*;
-
-import java.io.File;
-import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
-import java.nio.file.Paths;
-import java.util.Scanner;
-
-import org.jocl.Pointer;
-import org.jocl.Sizeof;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_device_id;
-import org.jocl.cl_event;
-import org.jocl.cl_kernel;
-import org.jocl.cl_mem;
-import org.jocl.cl_platform_id;
-import org.jocl.cl_program;
-
-import com.book.jocl.kernel.KernelTest;
-
-public class KernelExecutionTest {
-
-
-        private static final String KERNEL_PATH = "work_helloworld.cl";
-        private static final String FUNC = "helloworld";
-
-        private static void print_error(String src_msg, int err)
-        {
-            final String[] err_msg = new String[]{
-                "CL_SUCCESS",
-                "CL_DEVICE_NOT_FOUND",
-                "CL_DEVICE_NOT_AVAILABLE",
-                "CL_COMPILER_NOT_AVAILABLE",
-                "CL_MEM_OBJECT_ALLOCATION_FAILURE",
-                "CL_OUT_OF_RESOURCES",
-                "CL_OUT_OF_HOST_MEMORY",
-                "CL_PROFILING_INFO_NOT_AVAILABLE",
-                "CL_MEM_COPY_OVERLAP",
-                "CL_IMAGE_FORMAT_MISMATCH",
-                "CL_IMAGE_FORMAT_NOT_SUPPORTED",
-                "CL_BUILD_PROGRAM_FAILURE",
-                "CL_MAP_FAILURE",
-                "CL_MISALIGNED_SUB_BUFFER_OFFSET",
-                "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST",
-                "CL_COMPILE_PROGRAM_FAILURE     ",
-                "CL_LINKER_NOT_AVAILABLE",
-                "CL_LINK_PROGRAM_FAILURE",
-                "CL_DEVICE_PARTITION_FAILED",
-                "CL_KERNEL_ARG_INFO_NOT_AVAILABLE",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "CL_INVALID_VALUE",
-                "CL_INVALID_DEVICE_TYPE",
-                "CL_INVALID_PLATFORM",
-                "CL_INVALID_DEVICE",
-                "CL_INVALID_CONTEXT",
-                "CL_INVALID_QUEUE_PROPERTIES",
-                "CL_INVALID_COMMAND_QUEUE",
-                "CL_INVALID_HOST_PTR",
-                "CL_INVALID_MEM_OBJECT",
-                "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR",
-                "CL_INVALID_IMAGE_SIZE",
-                "CL_INVALID_SAMPLER",
-                "CL_INVALID_BINARY",
-                "CL_INVALID_BUILD_OPTIONS",
-                "CL_INVALID_PROGRAM",
-                "CL_INVALID_PROGRAM_EXECUTABLE",
-                "CL_INVALID_KERNEL_NAME",
-                "CL_INVALID_KERNEL_DEFINITION",
-                "CL_INVALID_KERNEL",
-                "CL_INVALID_ARG_INDEX",
-                "CL_INVALID_ARG_VALUE",
-                "CL_INVALID_ARG_SIZE",
-                "CL_INVALID_KERNEL_ARGS",
-                "CL_INVALID_WORK_DIMENSION",
-                "CL_INVALID_WORK_GROUP_SIZE",
-                "CL_INVALID_WORK_ITEM_SIZE",
-                "CL_INVALID_GLOBAL_OFFSET",
-                "CL_INVALID_EVENT_WAIT_LIST",
-                "CL_INVALID_EVENT",
-                "CL_INVALID_OPERATION",
-                "CL_INVALID_GL_OBJECT",
-                "CL_INVALID_BUFFER_SIZE",
-                "CL_INVALID_MIP_LEVEL",
-                "CL_INVALID_GLOBAL_WORK_SIZE",
-                "CL_INVALID_PROPERTY",
-                "CL_INVALID_IMAGE_DESCRIPTOR",
-                "CL_INVALID_COMPILER_OPTIONS",
-                "CL_INVALID_LINKER_OPTIONS",
-                "CL_INVALID_DEVICE_PARTITION_COUNT",
-            };
-
-            int index = -err;
-
-            if (err != CL_SUCCESS) {
-
-                System.out.printf("Failed Message: %s - Error Code: %d\n", src_msg, err, err_msg[index]);
-                System.exit(-1);
-            }
-
-        }
-
-        public static void main(String[] args) throws Exception
-        {
-                int err;
-
-            /* OpenCL APIの変数 */
-                cl_device_id[] device = new cl_device_id[1];
-                cl_context context;
-                cl_command_queue queue;
-                cl_program program;
-                cl_platform_id[] platform = new cl_platform_id[1];
-                cl_kernel kernel;
-
-                /*
-                 * OpenCLデバイスのプラットフォームの特定
-                 * 最初に見つけたプラットフォームを使用します。
-                 * */
-                err = clGetPlatformIDs(1, platform, null);
-
-                /*
-                 * CPU/GPUデバイスの情報取得をします。
-                 * */
-                err = clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, null);
-                if(err == CL_DEVICE_NOT_FOUND) {
-                  err = clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_CPU, 1, device, null);
-                }
-
-                /* コンテキストの生成をします。 */
-                context = clCreateContext(null, 1, device, null, null, null);
-
-
-                /*
-                 * OpenCL Cのソースコードをファイル（.cl）から
-                 * 読み込みコンパイルします
-                 * */
-
-                /* ファイルを読み込みバッファーに投入します */
-                StringBuffer sb = new StringBuffer();
-                URL resource = KernelExecutionTest.class.getResource(KERNEL_PATH);
-                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
-                System.out.println(path);
-                Scanner sc = new Scanner(new File(path));
-                while(sc.hasNext()) {
-                        sb.append(sc.nextLine() + "\n");
-                }
-                /* programの生成（ファイルからOpenCL Cソースコードの読み込み） */
-                int[] errPtr = new int[1];
-        program = clCreateProgramWithSource(context,
-                1, new String[]{sb.toString()}, null, errPtr);
-        if(errPtr[0] &lt; 0) {
-                print_error("clCreateProgramWithSource",errPtr[0]);
-        }
-                /* programのビルド（コンパイル）をします。 */
-        err = clBuildProgram(program, 0, null, null, null, null);
-        if(err &lt; 0) {
-                print_error("clBuildProgram",err);
-        }
-
-                /* コマンドキューを生成します */
-                queue = clCreateCommandQueue(context, device[0], 0, null);
-
-                cl_mem resultObj = clCreateBuffer(
-                        context,
-                        CL_MEM_ALLOC_HOST_PTR,
-                        Sizeof.cl_uint*2048,
-                        null,
-                        null
-                );
-
-                kernel = clCreateKernel(program, FUNC, null);
-
-                err = 0;
-                err |= clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(resultObj));
-        if(err &lt; 0) {
-                print_error("clSetKernelArg",err);
-        }
-
-                int dim = 1;
-                long[] global_offset = new long[]{0,0,0};
-                long[] global_work_size = new long[]{2048,1,1};
-                long[] local_work_size = new long[]{64,1,1};
-
-                //cl_event event = new cl_event();
-                //cl_event[] events = new cl_event[] {event};
-                err = clEnqueueNDRangeKernel(
-                                queue,
-                                kernel,
-                                dim,
-                                global_offset,
-                                global_work_size,
-                                local_work_size,
-                                0,
-                                null,
-                                null);
-        if(err &lt; 0) {
-                print_error("clEnqueueNDRangeKernel",err);
-        }
-
-        //clWaitForEvents(0, events);
-
-                ByteBuffer result;
-
-                result = clEnqueueMapBuffer(
-                                queue,
-                                resultObj,
-                                CL_TRUE,
-                                CL_MAP_READ,
-                                0,
-                                Sizeof.cl_uint*2048,
-                                0,
-                                null,
-                                null,
-                                null);
-
-                clEnqueueUnmapMemObject(queue, resultObj, result, 0, null, null);
-            clFinish(queue);
-
-            result.order(ByteOrder.LITTLE_ENDIAN);
-            int sum = 0;
-            for(int i = 0; i &lt; 2048; i++) {
-                int tmp = result.getInt();
-                sum+=tmp;
-            }
-
-            System.out.printf("%d\n", sum);
-
-            clReleaseMemObject(resultObj);
-            clReleaseProgram(program);
-            clReleaseKernel(kernel);
-            clReleaseCommandQueue(queue);
-            clReleaseContext(context);
-        }
-
-}</pre><p>
-</p><p><strong>work_helloworld.cl. </strong>
-</p><pre xmlns="" class="prettyprint">__kernel void helloworld(__global uint* globalObj)
-{
-        size_t gid = get_global_id(0);
-        globalObj[gid] = 10;
-}</pre><p>
-</p><p><strong>出力. </strong>
-</p><pre xmlns="" class="prettyprint">20480</pre><p>
-</p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clenqueuetask"></a>9.24.2. clEnqueueTask</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueTask」（<a class="xref" href="apbs33.html#clEnqueueTask" title="表B.89 表：clEnqueueTask">表B.89「表：clEnqueueTask」</a>）、（<a class="link" href="ch01s06.html#task-parallel-model" title="タスク並列プログラミングモデル">タスク並列プログラミング</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clEnqueueTask(
-    cl_command_queue command_queue, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO91-1"></a>(1)
-    cl_kernel kernel, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO91-2"></a>(2)
-    int num_events_in_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO91-3"></a>(3)
-    cl_event[] event_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO91-4"></a>(4)
-    cl_event event) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO91-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO91-1">(1)</a> </p></td><td valign="top" align="left"><p>
-有効なコマンドキューを指定。カーネルはコマンドキューと関連付けられたデバイス上で実行のためにキューに入れられる。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO91-2">(2)</a> </p></td><td valign="top" align="left"><p>
-有効なカーネルオブジェクト。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO91-3">(3)</a> </p></td><td valign="top" align="left"><p>
-event_wait_list で指定したイベントオブジェクトの数を指定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO91-4">(4)</a> </p></td><td valign="top" align="left"><p>
-このコマンドが実行される前に完了されているイベントを指定
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO91-5">(5)</a> </p></td><td valign="top" align="left"><p>
-カーネルコマンドを識別するイベントオブジェクトが戻され、コマンド完了の確認やコマンド完了の待機に使える。
-</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clenqueuenativekernel"></a>9.24.3. clEnqueueNativeKernel</h3></div></div></div><p>clEnqueueNativeKernel関数はOpenCLコンパイラを使い、コンパイルされてないネイティブC/C++関数を実行するコマンドを挿入します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueNativeKernel」（<a class="xref" href="apbs33.html#clEnqueueNativeKernel" title="表B.90 表：clEnqueueNativeKernel">表B.90「表：clEnqueueNativeKernel」</a>）を参照ください。</p></div><p>関数の定義は以下のようになります。</p><pre xmlns="" class="prettyprint">int org.jocl.CL.clEnqueueNativeKernel(
-    cl_command_queue command_queue, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-1"></a>(1)
-    EnqueueNativeKernelFunction user_func, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-2"></a>(2)
-    Object args, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-3"></a>(3)
-    long cb_args, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-4"></a>(4)
-    int num_mem_objects, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-5"></a>(5)
-    cl_mem[] mem_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-6"></a>(6)
-    Pointer[] args_mem_loc, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-7"></a>(7)
-    int num_events_in_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-8"></a>(8)
-    cl_event[] event_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-9"></a>(9)
-    cl_event event) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-10"></a>(10)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-1">(1)</a> </p></td><td valign="top" align="left"><p>
-有効なコマンドキューを指定。ネイティブユーザ関数は、CL_DEVICE_EXECUTION_CAPABILITIESをCL_EXEC_NATIVE_KERNEL機能に設定したデバイスで生成されるcommand-queue上で実行される。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-2">(2)</a> </p></td><td valign="top" align="left"><p>
-ホストが呼び出せる関数をを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-3">(3)</a> </p></td><td valign="top" align="left"><p>
-user_funcを呼び出す際の引数リストを指すオブジェクトを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-4">(4)</a> </p></td><td valign="top" align="left"><p>
-引数リストのバイトサイズを指定。argsとcb_argsバイトサイズが指すデータは複数されて、複製した領域はuser_funcに渡される。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-5">(5)</a> </p></td><td valign="top" align="left"><p>
-argsに渡されるバッファオブジェクトの個数を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-6">(6)</a> </p></td><td valign="top" align="left"><p>
-num_mem_objects &gt; 0の場合、有効なバッファオブジェクトのリストを指定
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-7">(7)</a> </p></td><td valign="top" align="left"><p>
-argsが指すメモリオブジェクトのハンドルが格納される領域を指すポインタ。ユーザ関数が実行される前に、メモリオブジェクトのハンドルはグローバルメモリへのポインタと交換される。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-8">(8)</a> </p></td><td valign="top" align="left"><p>
-event_wait_list で指定したイベントオブジェクトの数を指定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-9">(9)</a> </p></td><td valign="top" align="left"><p>
-このコマンドが実行される前に完了されているイベントを指定
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-10">(10)</a> </p></td><td valign="top" align="left"><p>
-カーネルコマンドを識別するイベントオブジェクトが戻され、コマンド完了の確認やコマンド完了の待機に使える。
-</p></td></tr></table></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s23.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s25.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+<code class="literal">clEnqueue{Read|Write|Map}Image</code>
+</li><li class="listitem">
+clEnqueueUnmapMemObject
+</li><li class="listitem">
+clEnqueueCopyBuffer
+</li><li class="listitem">
+clEnqueueCopyBufferRect
+</li><li class="listitem">
+clEnqueueCopyImage
+</li><li class="listitem">
+clEnqueueCopyImageToBuffer
+</li><li class="listitem">
+clEnqueueCopyBufferToImage
+</li><li class="listitem">
+clEnqueueNDRangeKernel
+</li><li class="listitem">
+clEnqueueTask
+</li><li class="listitem">
+clEnqueueNativeKernel
+</li></ul></div><p>これらの挿入コマンドは固有のイベントオブジェクトで識別されます。イベントオブジェクトはコマンドの実行時間の計測をするプロファイリング情報を捉えるために使われます。OpenCLコマンドのプロファイリングを有効にするには、command-queueを生成する際のプロパティのフラグの値にCL_QUEUE_PROFILING_ENABLEを設定します。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgeteventprofilinginfo"></a>9.24.1. clGetEventProfilingInfo</h3></div></div></div><p>clGetEventProfilingInfo関数はイベントに関連付けられたコマンドのプロファイリング情報を取得します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetEventProfilingInfo」（<a class="xref" href="apbs36.html#clGetEventProfilingInfo" title="表B.98 表：clGetEventProfilingInfo">表B.98「表：clGetEventProfilingInfo」</a>）と「表：cl_profiling_info」（<a class="xref" href="apbs36.html#cl_profiling_info" title="表B.99 表：cl_profiling_info">表B.99「表：cl_profiling_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetEventProfilingInfo(
+    cl_event event, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-1"></a>(1)
+    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-2"></a>(2)
+    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-3"></a>(3)
+    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-4"></a>(4)
+    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-1">(1)</a> </p></td><td valign="top" align="left"><p>
+イベントオブジェクトを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-2">(2)</a> </p></td><td valign="top" align="left"><p>
+取得するプロファイリング情報を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-3">(3)</a> </p></td><td valign="top" align="left"><p>
+取得する結果を戻すメモリ領域を指すポインタを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-4">(4)</a> </p></td><td valign="top" align="left"><p>
+param_valueが指すメモリ領域のバイトサイズを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-5">(5)</a> </p></td><td valign="top" align="left"><p>
+param_valueに複製されるデータの実際のバイトサイズを戻す。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_profiling_info"></a>9.24.2. cl_profiling_info</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_profiling_info」（<a class="xref" href="apbs36.html#cl_profiling_info" title="表B.99 表：cl_profiling_info">表B.99「表：cl_profiling_info」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s23.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s25.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

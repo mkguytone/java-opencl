@@ -6,8 +6,8 @@
 	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="pt03s11.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="pt03s13.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_整数関数"></a>12. 整数関数</h2></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：四則・絶対値・最小最大値関数」（<a class="xref" href="apbs39.html#basic_ops" title="表B.110 表：四則・絶対値・最小最大値関数">表B.110「表：四則・絶対値・最小最大値関数」</a>）を参照ください。</p></div><p>OpenCL-Cの整数型はC99と基本的には同じものと考えて構いません。符号付きと符号無しのintとuintがあり。整数をサポートする関数には、プロセッサの演算器の機能であるMAD演算を活用して、本来複数の処理に分ける計算を１つの計算サイクルで行なうことができます。</p><p>四則演算（加算、減算、除算、乗算）があり、ビット演算のために２〜３個便利な組込み関数が存在するだけです。</p><pre xmlns="" class="prettyprint">gentype rotate (gentype v, gentype i)</pre><p>vの各要素に対して、iビットの左シフトを行ないます。左シフトで押し出されたビットは右側に挿入されます。</p><pre xmlns="" class="prettyprint">uint x = 0x12345678;
 uint shift = 4;
 
-output = rotate(x, shift); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO103-1"></a>(1)
-printf("rotate: %x\n", output);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO103-1">(1)</a> </p></td><td valign="top" align="left"><p>
+output = rotate(x, shift); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO90-1"></a>(1)
+printf("rotate: %x\n", output);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO90-1">(1)</a> </p></td><td valign="top" align="left"><p>
 4桁左にシフトします。
 </p></td></tr></table></div><pre xmlns="" class="prettyprint">rotate: 23456781</pre><pre xmlns="" class="prettyprint">short upsample (char hi, uchar lo)
 ushort upsample (uchar hi, uchar lo)
@@ -34,24 +34,24 @@ printf("upsample for mad: %lx\n", upsample(mul_hi(a,b), a*b))</pre><p><strong>�
 </p><pre xmlns="" class="prettyprint">upsample: 88888800222222
 upsample for mad: 10404204001</pre><p>
 </p><pre xmlns="" class="prettyprint">gentype popcount (gentype x)</pre><p>引数xの0でないビットの数を計算します。</p><pre xmlns="" class="prettyprint">uint nonzero = 0x00001111;
-output = popcount(nonzero); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO104-1"></a>(1)
+output = popcount(nonzero); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO91-1"></a>(1)
 printf("popcount: %x\n", output);</pre><p><strong>出力. </strong>
 </p><pre xmlns="" class="prettyprint">popcount: 4</pre><p>
-</p><pre xmlns="" class="prettyprint">gentype clz (gentype x)</pre><p>clz関数は最上位ビットから連続する0のビット数を計算します。</p><pre xmlns="" class="prettyprint">printf("clz: %u\n", clz(0xf0001111)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO104-2"></a>(1)
-printf("clz: %u\n", clz(0x00000000)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO104-3"></a>(2)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO104-2">(1)</a> </p></td><td valign="top" align="left"><p>
+</p><pre xmlns="" class="prettyprint">gentype clz (gentype x)</pre><p>clz関数は最上位ビットから連続する0のビット数を計算します。</p><pre xmlns="" class="prettyprint">printf("clz: %u\n", clz(0xf0001111)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO91-2"></a>(1)
+printf("clz: %u\n", clz(0x00000000)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO91-3"></a>(2)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO91-2">(1)</a> </p></td><td valign="top" align="left"><p>
 上位ビットがfで0がありません。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO104-3">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO91-3">(2)</a> </p></td><td valign="top" align="left"><p>
 上位ビットから下位ビットまで全て0。
 </p></td></tr></table></div><p><strong>出力. </strong>
 </p><pre xmlns="" class="prettyprint">clz: 0
 clz: 32</pre><p>
-</p><p>最後に加算をするための関数を２つご案内します。</p><pre xmlns="" class="prettyprint">gentype hadd (gentype x, gentype y)</pre><p>和のオーバーフローを発生させずに`(x + y) &gt;&gt; 1`を計算します。</p><pre xmlns="" class="prettyprint">gentype rhadd (gentype x, gentype y)</pre><p>和のオーバーフローを発生させずに`(x + y + 1) &gt;&gt; 1`を計算します。</p><pre xmlns="" class="prettyprint">output = hadd(a, b); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO105-1"></a>(1)
+</p><p>最後に加算をするための関数を２つご案内します。</p><pre xmlns="" class="prettyprint">gentype hadd (gentype x, gentype y)</pre><p>和のオーバーフローを発生させずに`(x + y) &gt;&gt; 1`を計算します。</p><pre xmlns="" class="prettyprint">gentype rhadd (gentype x, gentype y)</pre><p>和のオーバーフローを発生させずに`(x + y + 1) &gt;&gt; 1`を計算します。</p><pre xmlns="" class="prettyprint">output = hadd(a, b); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-1"></a>(1)
 printf("hadd: %#lx\n", output);
 
-output = rhadd(a, b); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO105-2"></a>(2)
-printf("rhadd: %#lx\n", output);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO105-1">(1)</a> </p></td><td valign="top" align="left"><p>
+output = rhadd(a, b); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO92-2"></a>(2)
+printf("rhadd: %#lx\n", output);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-1">(1)</a> </p></td><td valign="top" align="left"><p>
 （概ね）`(a+b)/2`の計算をします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO105-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO92-2">(2)</a> </p></td><td valign="top" align="left"><p>
 （概ね）`(a+b+1)/2`の計算をします。
 </p></td></tr></table></div><p><strong>出力. </strong>
 </p><pre xmlns="" class="prettyprint">hadd: 0x102001
@@ -67,18 +67,18 @@ printf("a = %lx\n", a);
 printf("b = %lx\n", b);
 printf("c = %lx\n", c);
 
-output = a * b; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO106-1"></a>(1)
+output = a * b; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO93-1"></a>(1)
 printf("a times b = %lx\n", output);
 
 ulong a_long = 0x102001;
 ulong b_long = 0x102001;
 ulong output_long;
 
-output_long = a_long * b_long; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO106-2"></a>(2)
+output_long = a_long * b_long; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO93-2"></a>(2)
 printf("(ulong)a times b = %lx\n", output_long);</pre><p>
-</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO106-1">(1)</a> </p></td><td valign="top" align="left"><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO93-1">(1)</a> </p></td><td valign="top" align="left"><p>
 aとbのかけ算。結果はuintの最大値を超える。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO106-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO93-2">(2)</a> </p></td><td valign="top" align="left"><p>
 longでのかけ算。
 </p></td></tr></table></div><p><strong>出力. </strong>
 </p><pre xmlns="" class="prettyprint">a = 102001
@@ -102,19 +102,19 @@ uint b = 0x102001;
 uint c = 0;
 uint output;
 
-output = mad24(a, b, c); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO107-1"></a>(1)
+output = mad24(a, b, c); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO94-1"></a>(1)
 printf("mad24: %lx\n", output);
 
-output = mul_hi(a, b); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO107-2"></a>(2)
+output = mul_hi(a, b); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO94-2"></a>(2)
 printf("mul_hi: %lx\n", output);
 
-output = mad_hi(a, b, c); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO107-3"></a>(3)
+output = mad_hi(a, b, c); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO94-3"></a>(3)
 printf("mad_hi: %lx\n", output);</pre><p>
-</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO107-1">(1)</a> </p></td><td valign="top" align="left"><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO94-1">(1)</a> </p></td><td valign="top" align="left"><p>
 24ビットの整数の積と32ビットの和。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO107-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO94-2">(2)</a> </p></td><td valign="top" align="left"><p>
 <code class="literal">x * y</code>
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO107-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO94-3">(3)</a> </p></td><td valign="top" align="left"><p>
 <code class="literal">mul_hi(a, b) + c</code>
 </p></td></tr></table></div><p><strong>出力. </strong>
 </p><pre xmlns="" class="prettyprint">mad24: 4204001
@@ -132,26 +132,26 @@ int a_complement = 0x100000;
 int b_complement = 0x100000;
 int c_complement = 1111;
 
-output = add_sat(a, b); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO108-1"></a>(1)
+output = add_sat(a, b); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO95-1"></a>(1)
 printf("add_sat: %#lx\n", output);
 
-output = mad_sat(a, b, c); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO108-2"></a>(2)
+output = mad_sat(a, b, c); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO95-2"></a>(2)
 printf("mad_sat: %u\n", output);
 
-output = mad_sat(a_complement, b_complement, c_complement); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO108-3"></a>(3)
-printf("mad_sat with sign: %d\n", output);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO108-1">(1)</a> <a href="#CO108-2">(2)</a> </p></td><td valign="top" align="left"><p>
+output = mad_sat(a_complement, b_complement, c_complement); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO95-3"></a>(3)
+printf("mad_sat with sign: %d\n", output);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO95-1">(1)</a> <a href="#CO95-2">(2)</a> </p></td><td valign="top" align="left"><p>
 `a * b + c`の結果を飽和。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO108-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO95-3">(3)</a> </p></td><td valign="top" align="left"><p>
 `a_complement * b_complement + c_complement`の結果を飽和。
 </p></td></tr></table></div><p><strong>出力. </strong>
-</p><pre xmlns="" class="prettyprint">add_sat: 0x204002 //<a xmlns="http://www.w3.org/1999/xhtml" id="CO109-1"></a>(1)
-mad_sat: 4294967295 //<a xmlns="http://www.w3.org/1999/xhtml" id="CO109-2"></a>(2)
-mad_sat with sign: 2147483647 //<a xmlns="http://www.w3.org/1999/xhtml" id="CO109-3"></a>(3)</pre><p>
-</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO109-1">(1)</a> </p></td><td valign="top" align="left"><p>
+</p><pre xmlns="" class="prettyprint">add_sat: 0x204002 //<a xmlns="http://www.w3.org/1999/xhtml" id="CO96-1"></a>(1)
+mad_sat: 4294967295 //<a xmlns="http://www.w3.org/1999/xhtml" id="CO96-2"></a>(2)
+mad_sat with sign: 2147483647 //<a xmlns="http://www.w3.org/1999/xhtml" id="CO96-3"></a>(3)</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO96-1">(1)</a> </p></td><td valign="top" align="left"><p>
 飽和つき足し算。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO109-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO96-2">(2)</a> </p></td><td valign="top" align="left"><p>
 飽和つきmad(uint型)
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO109-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO96-3">(3)</a> </p></td><td valign="top" align="left"><p>
 飽和つきmad(int型)
 </p></td></tr></table></div><p>uintに格納できる整数の範囲は、`0〜4,294,967,295`となります。（2の補数で表す）intに格納できる整数の範囲は、`−2,147,483,648〜2,147,483,647`です。</p></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="pt03s11.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="pt03.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="pt03s13.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 

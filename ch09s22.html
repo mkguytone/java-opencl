@@ -1,26 +1,117 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.22. カーネル引数設定</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s21.html" title="9.21. カーネルオブジェクト" /><link rel="next" href="ch09s23.html" title="9.23. カーネルオブジェクト情報の取得" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.22. イベントオブジェクト</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s21.html" title="9.21. カーネルの実行" /><link rel="next" href="ch09s23.html" title="9.23. マーカー・バリアー・イベント待機" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s21.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s23.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_カーネル引数設定"></a>9.22. カーネル引数設定</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clsetkernelarg"></a>9.22.1. clSetKernelArg</h3></div></div></div><p>clSetKernelArg関数はkernelの特定の引数に対して引数値を設定。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clSetKernelArg」（<a class="xref" href="apbs31.html#clSetKernelArg" title="表B.81 表：clSetKernelArg">表B.81「表：clSetKernelArg」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clSetKernelArg(
-    cl_kernel kernel, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-1"></a>(1)
-    int arg_index, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-2"></a>(2)
-    long arg_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-3"></a>(3)
-    Pointer arg_value) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO86-4"></a>(4)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-1">(1)</a> </p></td><td valign="top" align="left"><p>
-有効なカーネルオブジェクトを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-2">(2)</a> </p></td><td valign="top" align="left"><p>
-引数の添字（インデックス）を指定。カーネルが宣言している引数の数をnとした場合、左端の引数を0で始めてn - 1 までの添字でカーネルの引数の番号を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-3">(3)</a> </p></td><td valign="top" align="left"><p>
-引数値のサイズを指定。引数がメモリオブジェクトの場合、サイズはバッファ・イメージオブジェクト型のサイズとなる必要がある。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO86-4">(4)</a> </p></td><td valign="top" align="left"><p>
-arg_indexで指定した引数に、カーネルの引数値として渡したいデータへのポインタを指定。arg_valueが指す引数データは複製され、clSetKernelArg()が戻った後にアプリケーションはarg_valueポインタを再利用可能。
-</p></td></tr></table></div><p>第4引数についてはプライベート、グローバルメモリで割り当てる場合はPointerオブジェクトを使いますが例外的にnullを渡すことがあります。以下のようにカーネル関数で引数をローカルメモリとする場合にnull値を使います。</p><pre xmlns="" class="prettyprint">__kernel void local_helloworld(__local uchar* foo)
-{
-        foo = 0xff;
-        printf("%u", foo);
-}</pre><p>これに対応するclSetKernelArg関数は以下のようになります。</p><pre xmlns="" class="prettyprint">err = 0;
-err |= clSetKernelArg(kernel, 0, Sizeof.cl_uchar, null);</pre></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s21.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s23.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s21.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s23.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_イベントオブジェクト"></a>9.22. イベントオブジェクト</h2></div></div></div><p>イベントイベントはコマンドの実行順序を整理する場合に使うことができます。</p><p>つまり一つのコマンドキューにコマンドが挿入されて、挿入順序で実行する場合は不要となります。</p><p>イベントオブジェクトが必要となる場面は、複数のコマンドが並行に実行して、パフォーマンスを向上させたい時です。</p><p>挿入したコマンドの実行ステータスはどの時点においても次の一つとなります。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+CL_QUEUED – command_queueにコマンドが挿入されたことを示す。ユーザーイベントを除く全てのイベントの初期状態。
+</li><li class="listitem">
+CL_SUBMITTED – 全てのユーザーイベントの初期状態。他のイベントでは、コマンドがホストからデバイスに送信されたことを示す。
+</li><li class="listitem">
+CL_RUNNING – デバイスがコマンドの実行を開始したことを示す。挿入したコマンドの実行ステータスがCL_SUBMITTEDからCL_RUNNINGに遷移するには、そのコマンドが待機する全てのイベントの完了が成功している必要がある。（実行ステータスがCL_COMPLETE）
+</li><li class="listitem">
+CL_COMPLETE – コマンドの完了が成功したことを示す。
+</li><li class="listitem">
+エラーコード – エラーコードは負の整数値をとり、コマンドが異常に終了したことを示す。（例：bad memory accessなどの原因による）
+</li></ul></div><p>ユーザーイベントを除くイベントオブジェクトの生成は複数の方法があります。例えば</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">
+カーネル実行コマンド
+</span></dt><dd>
+clEnqueueNDRangeKernel, clEnqueueTask, clEnqueueNativeKernel
+</dd><dt><span class="term">
+読み込み、書き込み、マップ、複製コマンド
+</span></dt><dd>
+<code class="literal">clEnqueue{Read|Write|Map}Buffer</code>, <code class="literal">clEnqueueUnmapMemObject</code>, <code class="literal">clEnqueue{Read|Write}BufferRect</code>, <code class="literal">clEnqueue{Read|Write|Map}Image</code>, <code class="literal">clEnqueueCopy{Buffer|Image}</code>, <code class="literal">clEnqueueCopyBufferRect</code>, <code class="literal">clEnqueueCopyBufferToImage</code>, <code class="literal">clEnqueueCopyImageToBuffer</code>
+</dd><dt><span class="term">
+同期点コマンド
+</span></dt><dd>
+clEnqueueMarkerWithWaitList, clEnqueueBarrierWithWaitList
+</dd></dl></div><p>等のコマンドは、コマンドキューにコマンドが挿入された時点でイベントオブジェクトを生成します。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clcreateuserevent"></a>9.22.1. clCreateUserEvent</h3></div></div></div><p>clCreateUserEvent関数はユーザイベントオブジェクトを生成。ユーザイベントはコマンドがデバイスに実行される前に、アプリケーションがユーザーイベントを終了するまで待機するコマンドを挿入させることを可能とする。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clCreateUserEvent」（<a class="xref" href="apbs35.html#clCreateUserEvent" title="表B.93 表：clCreateUserEvent">表B.93「表：clCreateUserEvent」</a>）を参照ください。</p></div><p>clCreateUserEventはユーザーイベントを生成したい場合に使います。ユーザーイベントはコマンドが生成するイベントオブジェクトと同じもので、唯一異なる点は明示的にホスト内で生成したことです。</p><pre xmlns="" class="prettyprint">cl_event org.jocl.CL.clCreateUserEvent( //<a xmlns="http://www.w3.org/1999/xhtml" id="CO80-1"></a>(1)
+    cl_context context, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO80-2"></a>(2)
+    int[] errcode_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO80-3"></a>(3)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO80-1">(1)</a> </p></td><td valign="top" align="left"><p>
+生成したcl_eventオブジェクトを戻します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO80-2">(2)</a> </p></td><td valign="top" align="left"><p>
+OpenCLコンテキストを指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO80-3">(3)</a> </p></td><td valign="top" align="left"><p>
+エラーコードの戻り値を指すポインタ
+</p></td></tr></table></div><p>生成したオブジェクトの実行ステータスは、CL_SUBMITTEDに初期化されます。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clsetusereventstatus"></a>9.22.2. clSetUserEventStatus</h3></div></div></div><p>clSetUserEventStatus関数はユーザイベントオブジェクトの実行状態を設定します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clSetUserEventStatus」（<a class="xref" href="apbs35.html#clSetUserEventStatus" title="表B.94 表：clSetUserEventStatus">表B.94「表：clSetUserEventStatus」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clSetUserEventStatus(
+    cl_event event, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO81-1"></a>(1)
+    int execution_status) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO81-2"></a>(2)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO81-1">(1)</a> </p></td><td valign="top" align="left"><p>
+clCreateUserEventを使って生成したユーザイベントオブジェクトを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO81-2">(2)</a> </p></td><td valign="top" align="left"><p>
+設定される新たな実行状態を指定。CL_COMPLETEまたは、負の整数値でエラーを示すことができる。
+</p></td></tr></table></div><div class="important" style="margin-left: 0; margin-right: 10%;"><h3 class="title">重要</h3><p>ユーザイベントオブジェクトと関連付けたメモリオブジェクトは以下のようにイベントステータスを完了してから解放してください。</p><pre xmlns="" class="prettyprint">evt = clCreateUserEvent(context, null);
+clSetUserEventStatus(evt, CL_COMPLETE); clReleaseMemObject(mem);</pre></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clwaitforevents"></a>9.22.3. clWaitForEvents</h3></div></div></div><p>clWaitForEvents関数を呼び出すと、event_list内のイベントオブジェクトで識別されるコマンドのホストスレッドの完了を待機します。実行ステータスがCL_COMPLETEまたは負の値の場合、コマンドは完了とみなします。event_listで指定したイベントは同期点としても作用します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clWaitForEvents」（<a class="xref" href="apbs35.html#clWaitForEvents" title="表B.95 表：clWaitForEvents">表B.95「表：clWaitForEvents」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clWaitForEvents(
+    int num_events, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO82-1"></a>(1)
+    cl_event[] event_list) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO82-2"></a>(2)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO82-1">(1)</a> </p></td><td valign="top" align="left"><p>
+待機するイベントの数を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO82-2">(2)</a> </p></td><td valign="top" align="left"><p>
+イベントオブジェクトのリストを指定。完了を待機。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgeteventinfo"></a>9.22.4. clGetEventInfo</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetEventInfo」（<a class="xref" href="apbs35.html#clGetEventInfo" title="表B.96 表：clGetEventInfo">表B.96「表：clGetEventInfo」</a>）と「表：cl_event_info」（<a class="xref" href="apbs35.html#cl_event_info" title="表B.97 表：cl_event_info">表B.97「表：cl_event_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetEventInfo(
+    cl_event event, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO83-1"></a>(1)
+    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO83-2"></a>(2)
+    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO83-3"></a>(3)
+    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO83-4"></a>(4)
+    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO83-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO83-1">(1)</a> </p></td><td valign="top" align="left"><p>
+情報取得するイベントオブジェクトを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO83-2">(2)</a> </p></td><td valign="top" align="left"><p>
+取得する情報のパラメータの名称を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO83-3">(3)</a> </p></td><td valign="top" align="left"><p>
+取得する結果が戻されるメモリを指すポインタ。NULLの場合は無視。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO83-4">(4)</a> </p></td><td valign="top" align="left"><p>
+param_valueを指すメモリのバイトサイズを指定。サイズは戻り値の型のサイズ以上となる必要がある。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO83-5">(5)</a> </p></td><td valign="top" align="left"><p>
+param_valueに複製されるデータの実際のバイトサイズを戻す。NULLの場合は無視。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_event_info"></a>9.22.5. cl_event_info</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetEventInfo」（<a class="xref" href="apbs35.html#clGetEventInfo" title="表B.96 表：clGetEventInfo">表B.96「表：clGetEventInfo」</a>）と「表：cl_event_info」（<a class="xref" href="apbs35.html#cl_event_info" title="表B.97 表：cl_event_info">表B.97「表：cl_event_info」</a>）を参照ください。</p></div><p>取得できる情報のうちcl_command_typeは特に有用なので頭の隅にでも覚えておくようにするとよいでしょう。eventに関連付けられたコマンドを特定することが可能となります。戻り値は以下のような値があります。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+CL_COMMAND_NDRANGE_KERNEL
+</li><li class="listitem">
+CL_COMMAND_TASK
+</li><li class="listitem">
+CL_COMMAND_NATIVE_KERNEL
+</li><li class="listitem">
+CL_COMMAND_READ_BUFFER
+</li><li class="listitem">
+CL_COMMAND_WRITE_BUFFER
+</li><li class="listitem">
+CL_COMMAND_COPY_BUFFER
+</li><li class="listitem">
+CL_COMMAND_READ_IMAGE
+</li><li class="listitem">
+CL_COMMAND_WRITE_IMAGE
+</li><li class="listitem">
+CL_COMMAND_COPY_IMAGE
+</li><li class="listitem">
+CL_COMMAND_COPY_BUFFER_TO_IMAGE
+</li><li class="listitem">
+CL_COMMAND_COPY_IMAGE_TO_BUFFER
+</li><li class="listitem">
+CL_COMMAND_MAP_BUFFER
+</li><li class="listitem">
+CL_COMMAND_MAP_IMAGE
+</li><li class="listitem">
+CL_COMMAND_UNMAP_MEM_OBJECT
+</li><li class="listitem">
+CL_COMMAND_MARKER
+</li><li class="listitem">
+CL_COMMAND_ACQUIRE_GL_OBJECTS
+</li><li class="listitem">
+CL_COMMAND_RELEASE_GL_OBJECTS
+</li><li class="listitem">
+CL_COMMAND_READ_BUFFER_RECT
+</li><li class="listitem">
+CL_COMMAND_WRITE_BUFFER_RECT
+</li><li class="listitem">
+CL_COMMAND_COPY_BUFFER_RECT
+</li><li class="listitem">
+CL_COMMAND_USER
+</li><li class="listitem">
+CL_COMMAND_BARRIER
+</li><li class="listitem">
+CL_COMMAND_MIGRATE_MEM_OBJECTS
+</li><li class="listitem">
+CL_COMMAND_FILL_BUFFER
+</li><li class="listitem">
+CL_COMMAND_FILL_IMAGE
+</li></ul></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s21.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s23.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

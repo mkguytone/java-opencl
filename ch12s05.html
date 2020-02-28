@@ -42,45 +42,45 @@ private static long[] local_work_size = new long[]{1,1,1};</pre><p>一つ目の�
         F[y*row_size + index + stride] = in1;
 
 }</pre><p>1次元からの大きな変更点としては各行を一つ一つ処理するために、yとrow_sizeの2つの変数が追加されたことです。</p><pre xmlns="" class="prettyprint">in0 = F[y*row_size + index];
-in1 = F[y*row_size + index+stride];</pre><p>この記述では、Fは2次元行列でindexは行の中の要素に対応します。またy*row_sizeは、y行を指定します。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_全体の流れ"></a>12.5.1. 全体の流れ</h3></div></div></div><p>擬似フロー（<a class="xref" href="ch12s02.html#fft-2d-procedure" title="図12.2 図：2次元FFTの手順">図12.2「図：2次元FFTの手順」</a>）にある通り、2D-FFTの手順には、4回のビット反転、2回の行列転置を行う必要があります。</p><p>実装例では以下のような流れで処理をしています。</p><pre xmlns="" class="prettyprint">bit_reverse(data_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-1"></a>(1)
-fft_2d(width, data_mem,processed_mem,1,true); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-2"></a>(2)
+in1 = F[y*row_size + index+stride];</pre><p>この記述では、Fは2次元行列でindexは行の中の要素に対応します。またy*row_sizeは、y行を指定します。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_全体の流れ"></a>12.5.1. 全体の流れ</h3></div></div></div><p>擬似フロー（<a class="xref" href="ch12s02.html#fft-2d-procedure" title="図12.2 図：2次元FFTの手順">図12.2「図：2次元FFTの手順」</a>）にある通り、2D-FFTの手順には、4回のビット反転、2回の行列転置を行う必要があります。</p><p>実装例では以下のような流れで処理をしています。</p><pre xmlns="" class="prettyprint">bit_reverse(data_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-1"></a>(1)
+fft_2d(width, data_mem,processed_mem,1,true); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-2"></a>(2)
 
-transpose(processed_mem, transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-3"></a>(3)
+transpose(processed_mem, transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-3"></a>(3)
 
-bit_reverse(transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-4"></a>(4)
-fft_2d(height,null,transpose_mem,1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-5"></a>(5)
+bit_reverse(transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-4"></a>(4)
+fft_2d(height,null,transpose_mem,1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-5"></a>(5)
 
-bit_reverse(transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-6"></a>(6)
-fft_2d(height,null,transpose_mem,-1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-7"></a>(7)
-fft_inverse2d(height,transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-8"></a>(8)
+bit_reverse(transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-6"></a>(6)
+fft_2d(height,null,transpose_mem,-1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-7"></a>(7)
+fft_inverse2d(height,transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-8"></a>(8)
 
-transpose(transpose_mem, processed_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-9"></a>(9)
+transpose(transpose_mem, processed_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-9"></a>(9)
 
-bit_reverse(processed_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-10"></a>(10)
-fft_2d(width,null,processed_mem,-1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-11"></a>(11)
-fft_inverse2d(width,processed_mem);     //<a xmlns="http://www.w3.org/1999/xhtml" id="CO126-12"></a>(12)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-1">(1)</a> </p></td><td valign="top" align="left"><p>
+bit_reverse(processed_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-10"></a>(10)
+fft_2d(width,null,processed_mem,-1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-11"></a>(11)
+fft_inverse2d(width,processed_mem);     //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-12"></a>(12)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-1">(1)</a> </p></td><td valign="top" align="left"><p>
 元データ（data_mem）のビット反転。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-2">(2)</a> </p></td><td valign="top" align="left"><p>
 元データを変換して、処理済みデータ（processed_mem）に書き込み。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-3">(3)</a> </p></td><td valign="top" align="left"><p>
 処理済みデータ（processed_mem）を転置して、転置データ（transpose_mem）に書き込み。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-4">(4)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-4">(4)</a> </p></td><td valign="top" align="left"><p>
 転置データ（transpose_mem）のビット反転。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-5">(5)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-5">(5)</a> </p></td><td valign="top" align="left"><p>
 転置データ（transpose_mem）のFFTをして転置データ（transpose_mem）を更新。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-6">(6)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-6">(6)</a> </p></td><td valign="top" align="left"><p>
 転置データ（transpose_mem）のビット反転。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-7">(7)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-7">(7)</a> </p></td><td valign="top" align="left"><p>
 転置データ（transpose_mem）の逆FFTをして転置データ（transpose_mem）を更新。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-8">(8)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-8">(8)</a> </p></td><td valign="top" align="left"><p>
 転置データ（transpose_mem）にスケールファクターをかけて値を調整します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-9">(9)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-9">(9)</a> </p></td><td valign="top" align="left"><p>
 転置データ（transpose_mem）を転置して、処理済みデータ（processed_mem）に書き込み。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-10">(10)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-10">(10)</a> </p></td><td valign="top" align="left"><p>
 処理済みデータ（processed_mem）のビット反転。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-11">(11)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-11">(11)</a> </p></td><td valign="top" align="left"><p>
 処理済みデータ（processed_mem）のFFTをしてデータを更新。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO126-12">(12)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-12">(12)</a> </p></td><td valign="top" align="left"><p>
 処理済みデータ（processed_mem）にスケールファクターをかけて値を調整します。
 </p></td></tr></table></div><p>bit_reverse関数がビット反転、transpose関数が転置、fft_2dが高速フーリエ変換（第4引数を-1にすると逆変換）、fft_inverse2dが逆フーリエ変換のスケーリングに対応します。</p><p>fft_inverse2dは以下のカーネル関数に対応します。</p><pre xmlns="" class="prettyprint">__kernel void fft_inverse2d(int N, __global float2* F) {
         size_t x = get_global_id(0);

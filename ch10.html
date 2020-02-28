@@ -20,7 +20,7 @@ public class HistogramCPU {
                 generateSample();
 
                 for(int i = 0; i &lt; DATA_SIZE; ++i) {
-                        histogram[data[i]]++; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO124-1"></a>(1)
+                        histogram[data[i]]++; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO111-1"></a>(1)
                 }
 
                 for(int i = 0; i &lt; BIN_SIZE; ++i) {
@@ -30,14 +30,14 @@ public class HistogramCPU {
         private static void generateSample() {
                 Random rnd = new Random();
                 for(int i = 0; i &lt; DATA_SIZE; i++) {
-                        data[i] = rnd.nextInt(256); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO124-2"></a>(2)
+                        data[i] = rnd.nextInt(256); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO111-2"></a>(2)
                 }
 
         }
 }</pre><p>
-</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO124-1">(1)</a> </p></td><td valign="top" align="left"><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO111-1">(1)</a> </p></td><td valign="top" align="left"><p>
 配列の添字をdata[i]として、該当する添字の要素をインクリメントします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO124-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO111-2">(2)</a> </p></td><td valign="top" align="left"><p>
 元データです。histogram配列は要素256のint型なので、0〜255の値を乱数生成します。
 </p></td></tr></table></div><p>上記のプログラムの出力は以下のようになります。</p><p><strong>出力. </strong>
 </p><pre xmlns="" class="prettyprint">8070

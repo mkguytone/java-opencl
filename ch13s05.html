@@ -3,27 +3,27 @@
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch13s04.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch14.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_カーネルの実装_bitonic_merge"></a>13.5. カーネルの実装（bitonic merge）</h2></div></div></div><p>バイトニックマージは、バイトニックスプリットと比べるとシンプルです。理由は上昇配列と下降配列に並べ替えるスプリットに対して、マージは値の大小によってスワップを繰り返すだけだからです。</p><p>以下がマージのアルゴリズムを実装したカーネルのソースです。</p><pre xmlns="" class="prettyprint">int in_range = isless(gid % (distance &lt;&lt; 1),distance); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO130-1"></a>(1)
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch13s04.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch14.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_カーネルの実装_bitonic_merge"></a>13.5. カーネルの実装（bitonic merge）</h2></div></div></div><p>バイトニックマージは、バイトニックスプリットと比べるとシンプルです。理由は上昇配列と下降配列に並べ替えるスプリットに対して、マージは値の大小によってスワップを繰り返すだけだからです。</p><p>以下がマージのアルゴリズムを実装したカーネルのソースです。</p><pre xmlns="" class="prettyprint">int in_range = isless(gid % (distance &lt;&lt; 1),distance); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-1"></a>(1)
 
-if(in_range) { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO130-2"></a>(2)
-    uint left = data[gid]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO130-3"></a>(3)
-    uint right = data[gid+distance]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO130-4"></a>(4)
-    cmp_mask = left &lt; right ? 1 : 0; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO130-5"></a>(5)
-    data[gid] = select(left,right,cmp_mask); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO130-6"></a>(6)
-    data[gid+distance] = select(right,left,cmp_mask); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO130-7"></a>(7)
-}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO130-1">(1)</a> </p></td><td valign="top" align="left"><p>
+if(in_range) { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-2"></a>(2)
+    uint left = data[gid]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-3"></a>(3)
+    uint right = data[gid+distance]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-4"></a>(4)
+    cmp_mask = left &lt; right ? 1 : 0; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-5"></a>(5)
+    data[gid] = select(left,right,cmp_mask); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-6"></a>(6)
+    data[gid+distance] = select(right,left,cmp_mask); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-7"></a>(7)
+}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-1">(1)</a> </p></td><td valign="top" align="left"><p>
 グローバルIDのインデックス空間をdistanceの2倍の要素の範囲で分割して、それがdistanceより小さい場合に真を返します。処理すべき添字は、distanceより小さい値を持つ、グローバルIDの場合とします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO130-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-2">(2)</a> </p></td><td valign="top" align="left"><p>
 カーネルは、①でdistanceの2倍で除したグローバルIDの値がdistanceより小さい場合は、処理点から除外。if分岐のカッコ内の処理は効率的でないため、前のステップで計算したフラグをif分岐のカッコに配置します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO130-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-3">(3)</a> </p></td><td valign="top" align="left"><p>
 処理点の値をleft変数に保存。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO130-4">(4)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-4">(4)</a> </p></td><td valign="top" align="left"><p>
 スワップ点の値をright変数に保存。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO130-5">(5)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-5">(5)</a> </p></td><td valign="top" align="left"><p>
 処理点がスワップ点の値より小さい場合はスワップフラグ（cmp_mask）をオンにします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO130-6">(6)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-6">(6)</a> </p></td><td valign="top" align="left"><p>
 スワップフラグ（cmp_mask）がオンの場合にleftとrightをスワップ（入れ替え）します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO130-7">(7)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-7">(7)</a> </p></td><td valign="top" align="left"><p>
 スワップフラグ（cmp_mask）がオンの場合にrightとleftをスワップ（入れ替え）します。
 </p></td></tr></table></div><p>マージの処理ですが、データの要素数が16の場合は以下のような処理過程を行います。dはスワップ距離、gdivは「gid % (distance &lt;&lt; 1」に該当します。</p><pre xmlns="" class="prettyprint">merge. d=8, gdiv=0, left=10, right=10, data[gid]=10, data[gid+d]=10
 merge. d=8, gdiv=1, left=10, right=10, data[gid]=10, data[gid+d]=10

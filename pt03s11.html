@@ -11,58 +11,58 @@ size_t global_id_1 = get_global_id(1);
 size_t global_id_2 = get_global_id(2);</pre><p>
 </p><p>get_local_id関数はdimindexで指定した次元で固有のローカル・ワークアイテムIDを返します。</p><pre xmlns="" class="prettyprint">size_t get_global_offset(uint dimindx)</pre><p>dimindexで指定した次元のオフセット（offset）を返します。clEnqueueNDRangeKernelのglobal_work_offset引数で指定したものが該当します。</p><pre xmlns="" class="prettyprint">size_t get_local_id(uint dimindx)</pre><p>dimindexで指定した次元で固有のローカル・ワークアイテム（work item）IDを返します。</p><pre xmlns="" class="prettyprint">size_t get_group_id(uint dimindx)</pre><p>dimindexで指定した次元のオフセット（offset）を返します。clEnqueueNDRangeKernelのglobal_work_offset引数で指定したものが該当します。</p><pre xmlns="" class="prettyprint">size_t get_global_size(uint dimindx)</pre><p>dimindexで指定した次元のローカル・ワークアイテム（work item）の数を返します。clEnqueueNDRangeKernelのlocal_work_size引数で指定したものが該当します。</p><pre xmlns="" class="prettyprint">size_t get_local_size(uint dimindx)</pre><p>dimindexで指定した次元のローカル・ワークアイテム（work item）の数を返します。clEnqueueNDRangeKernelのlocal_work_size引数で指定したものが該当します。</p><pre xmlns="" class="prettyprint">size_t get_num_groups(uint dimindx)</pre><p>dimindexで指定した次元のワークグループ（work group）の数を返します。clEnqueueNDRangeKernelのlocal_work_size引数で指定したものが該当します。</p><pre xmlns="" class="prettyprint">__kernel void ndrange_id(__global write_only float *output) {
 
-   size_t global_id_0 = get_global_id(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-1"></a>(1)
-   size_t global_id_1 = get_global_id(1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-2"></a>(2)
-   size_t global_id_2 = get_global_id(2); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-3"></a>(3)
+   size_t global_id_0 = get_global_id(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-1"></a>(1)
+   size_t global_id_1 = get_global_id(1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-2"></a>(2)
+   size_t global_id_2 = get_global_id(2); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-3"></a>(3)
 
-   size_t global_size_0 = get_global_size(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-4"></a>(4)
-   size_t global_size_1 = get_global_size(1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-5"></a>(5)
+   size_t global_size_0 = get_global_size(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-4"></a>(4)
+   size_t global_size_1 = get_global_size(1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-5"></a>(5)
 
-   size_t offset_0 = get_global_offset(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-6"></a>(6)
-   size_t offset_1 = get_global_offset(1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-7"></a>(7)
-   size_t offset_2 = get_global_offset(2); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-8"></a>(8)
+   size_t offset_0 = get_global_offset(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-6"></a>(6)
+   size_t offset_1 = get_global_offset(1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-7"></a>(7)
+   size_t offset_2 = get_global_offset(2); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-8"></a>(8)
 
-   size_t local_id_0 = get_local_id(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-9"></a>(9)
-   size_t local_id_1 = get_local_id(1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-10"></a>(10)
-   size_t local_id_2 = get_local_id(2); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-11"></a>(11)
+   size_t local_id_0 = get_local_id(0); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-9"></a>(9)
+   size_t local_id_1 = get_local_id(1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-10"></a>(10)
+   size_t local_id_2 = get_local_id(2); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-11"></a>(11)
 
-   int index_0 = global_id_0 - offset_0; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-12"></a>(12)
-   int index_1 = global_id_1 - offset_1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-13"></a>(13)
-   int index_2 = global_id_2 - offset_2; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-14"></a>(14)
+   int index_0 = global_id_0 - offset_0; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-12"></a>(12)
+   int index_1 = global_id_1 - offset_1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-13"></a>(13)
+   int index_2 = global_id_2 - offset_2; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-14"></a>(14)
 
    int index = index_2 * global_size_0 * global_size_1  + index_1 * global_size_0 + index_0;
    float f = global_id_0 * 100.0f + global_id_1 * 10.0f + global_id_2 * 1.0f;
    f += local_id_0 * 0.1f + local_id_1 * 0.01f + local_id_2 * 0.001f;
-   output[index] = f; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-15"></a>(15)
-}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-1">(1)</a> </p></td><td valign="top" align="left"><p>
+   output[index] = f; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-15"></a>(15)
+}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-1">(1)</a> </p></td><td valign="top" align="left"><p>
 次元1のグローバルIDを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-2">(2)</a> </p></td><td valign="top" align="left"><p>
 次元2のグローバルIDを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-3">(3)</a> </p></td><td valign="top" align="left"><p>
 次元3のグローバルIDを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-4">(4)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-4">(4)</a> </p></td><td valign="top" align="left"><p>
 次元1のグローバルサイズ（ワークアイテム数）を取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-5">(5)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-5">(5)</a> </p></td><td valign="top" align="left"><p>
 次元2のグローバルサイズ（ワークアイテム数）を取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-6">(6)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-6">(6)</a> </p></td><td valign="top" align="left"><p>
 次元1のグローバルオフセットを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-7">(7)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-7">(7)</a> </p></td><td valign="top" align="left"><p>
 次元2のグローバルオフセットを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-8">(8)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-8">(8)</a> </p></td><td valign="top" align="left"><p>
 次元3のグローバルオフセットを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-9">(9)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-9">(9)</a> </p></td><td valign="top" align="left"><p>
 次元1のローカルIDを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-10">(10)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-10">(10)</a> </p></td><td valign="top" align="left"><p>
 次元2のローカルIDを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-11">(11)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-11">(11)</a> </p></td><td valign="top" align="left"><p>
 次元3のローカルIDを取得
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-12">(12)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-12">(12)</a> </p></td><td valign="top" align="left"><p>
 グローバルIDとオフセットを調整
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-13">(13)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-13">(13)</a> </p></td><td valign="top" align="left"><p>
 グローバルIDとオフセットを調整
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-14">(14)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-14">(14)</a> </p></td><td valign="top" align="left"><p>
 グローバルIDとオフセットを調整
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-15">(15)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-15">(15)</a> </p></td><td valign="top" align="left"><p>
 出力変数「output」に代入
 </p></td></tr></table></div><p>ホストプログラム側の設定は、64個のワークアイテムを3次元に分割するものとします。</p><pre xmlns="" class="prettyprint">package com.book.jocl.workitem;
 import static org.jocl.CL.*;

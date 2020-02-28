@@ -25,16 +25,16 @@ public class LSDSortTest {
                 for(int d = W-1; d&gt;=0; d--) {
                         int[] count = new int[256];
                         for(int i = 0; i&lt;N; ++i) {
-                                count[a[i][d]+1]++; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO132-1"></a>(1)
+                                count[a[i][d]+1]++; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO119-1"></a>(1)
                         }
                         for(int k = 1; k &lt; 256; k++) {
-                                count[k] += count[k-1]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO132-2"></a>(2)
+                                count[k] += count[k-1]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO119-2"></a>(2)
                         }
                         for(int i = 0; i &lt; N; ++i) {
-                                tmp[count[a[i][d]]++] = a[i]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO132-3"></a>(3)
+                                tmp[count[a[i][d]]++] = a[i]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO119-3"></a>(3)
                         }
                         for(int i = 0; i &lt; N; ++i) {
-                                a[i] = tmp[i]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO132-4"></a>(4)
+                                a[i] = tmp[i]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO119-4"></a>(4)
                         }
                 }
         }
@@ -56,13 +56,13 @@ public class LSDSortTest {
         }
 
 }</pre><p>
-</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO132-1">(1)</a> </p></td><td valign="top" align="left"><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO119-1">(1)</a> </p></td><td valign="top" align="left"><p>
 ヒストグラムの計算をします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO132-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO119-2">(2)</a> </p></td><td valign="top" align="left"><p>
 ヒストグラムの累積配列を計算（Up-SweepとDown-Sweep）します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO132-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO119-3">(3)</a> </p></td><td valign="top" align="left"><p>
 配列を並び変え、tmp配列に一時的に保管します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO132-4">(4)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO119-4">(4)</a> </p></td><td valign="top" align="left"><p>
 tmp配列からa配列に要素をコピーします。
 </p></td></tr></table></div><p>上記のサンプルプログラムの出力は以下のようになります。</p><pre xmlns="" class="prettyprint">1:4
 2:2

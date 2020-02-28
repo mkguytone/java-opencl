@@ -1,45 +1,320 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.7. イメージオブジェクトのマッピング</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s06.html" title="9.6. イメージの読み込みと書き込み" /><link rel="next" href="ch09s08.html" title="9.8. イメージ情報取得" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.7. イメージオブジェクト</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s06.html" title="9.6. マップされたメモリオブジェクトをアンマップ" /><link rel="next" href="ch09s08.html" title="9.8. イメージの読み込みと書き込み" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s06.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s08.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_イメージオブジェクトのマッピング"></a>9.7. イメージオブジェクトのマッピング</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clenqueuemapimage"></a>9.7.1. clEnqueueMapImage</h3></div></div></div><p>clEnqueueMapImage関数はイメージオブジェクトの領域からホストアドレス空間へのマップを行いマップされた領域へのポインタを戻すコマンドを挿入します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueMapImage」（<a class="xref" href="apbs17.html#clEnqueueMapImage" title="表B.49 表：clEnqueueMapImage">表B.49「表：clEnqueueMapImage」</a>）と「表：cl_map_flags」（<a class="xref" href="apbs17.html#cl_map_flags" title="表B.50 表：cl_map_flags">表B.50「表：cl_map_flags」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">ByteBuffer org.jocl.CL.clEnqueueMapImage(
-    cl_command_queue command_queue, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-1"></a>(1)
-    cl_mem image, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-2"></a>(2)
-    boolean blocking_map, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-3"></a>(3)
-    long map_flags, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-4"></a>(4)
-    long[] origin, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-5"></a>(5)
-    long[] region, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-6"></a>(6)
-    long[] image_row_pitch, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-7"></a>(7)
-    long[] image_slice_pitch, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-8"></a>(8)
-    int num_events_in_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-9"></a>(9)
-    cl_event[] event_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-10"></a>(10)
-    cl_event event, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-11"></a>(11)
-    int[] errcode_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO54-12"></a>(12)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-1">(1)</a> </p></td><td valign="top" align="left"><p>
-マップコマンドを挿入するコマンドキューを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-2">(2)</a> </p></td><td valign="top" align="left"><p>
-有効なイメージオブジェクトを指定。command_queueとimageと関連付けられたOpenCLコンテキストは同じとなる必要がある。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-3">(3)</a> </p></td><td valign="top" align="left"><p>
-マップ操作を、ブロッキングで行うのかノンブロッキングで行うのかを指定。blocking_mapにCL_TRUEを指定すると、imageの指定した領域がホストアドレス空間にマップされるまでclEnqueueMapImageは戻らない。アプリケーションはclEnqueueMapImageから戻るポインタを使用してマップされた領域にアクセスできる。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-4">(4)</a> </p></td><td valign="top" align="left"><p>
-マップの設定を行うビットフィールド。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-5">(5)</a> </p></td><td valign="top" align="left"><p>
-1D、2D、3Dイメージ内の(x,y,z)オフセットをピクセルで指定。2Dイメージ配列内の(x,y)オフセットとイメージインデックスを指定。1Dイメージ配列内の(x)オフセットとイメージインデックスを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-6">(6)</a> </p></td><td valign="top" align="left"><p>
-1D、2D、3D矩形領域の(width, height, depth) をピクセルで定義。2D矩形領域の(width, height)をピクセルで定義し、2Dイメージ配列のイメージ個数の定義。1D矩形領域の(width)をピクセルで定義し、1Dイメージ配列のイメージ個数を定義。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-7">(7)</a> </p></td><td valign="top" align="left"><p>
-マップされる領域での走査線の長さをバイトで返します。非NULLの値を指定する必要がある。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-8">(8)</a> </p></td><td valign="top" align="left"><p>
-マップされる領域での3Dイメージの2Dスライスのサイズ、または1D/2Dイメージ、1D/2Dイメージ配列のサイズをバイトで戻す。imageが2Dイメージオブジェクトでこの引数がNULLでない場合、0が戻される。imageが3Dイメージオブジェクト、1D/2Dイメージ配列である場合
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-9">(9)</a> </p></td><td valign="top" align="left"><p>
-event_wait_list で指定したイベントオブジェクトの数を指定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-10">(10)</a> </p></td><td valign="top" align="left"><p>
-このコマンドが実行される前に完了されているイベントを指定。event_wait_listがNULLの場合、このコマンドはどのイベントの完了待機もしない。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-11">(11)</a> </p></td><td valign="top" align="left"><p>
-マップコマンドを識別するイベントオブジェクトが戻され、コマンド完了の確認やコマンド完了の待機に使える。eventがNULLの場合、アプリケーションはコマンドの状況確認やコマンド完了待ちができなくなる。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO54-12">(12)</a> </p></td><td valign="top" align="left"><p>
-適切なエラーコードを返します。
-</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_map_flags"></a>9.7.2. cl_map_flags</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueMapImage」（<a class="xref" href="apbs17.html#clEnqueueMapImage" title="表B.49 表：clEnqueueMapImage">表B.49「表：clEnqueueMapImage」</a>）と「表：cl_map_flags」（<a class="xref" href="apbs17.html#cl_map_flags" title="表B.50 表：cl_map_flags">表B.50「表：cl_map_flags」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s06.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s08.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s06.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s08.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_イメージオブジェクト"></a>9.7. イメージオブジェクト</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="image_src"></a>9.7.1. 検証環境の準備</h3></div></div></div><div class="important" style="margin-left: 0; margin-right: 10%;"><h3 class="title">重要</h3><p>OpenCLを使用した画像処理を行なうために画像をGithubのリポジトリに用意しました。以下が素材を含むリポジトリです。</p><p><a class="ulink" href="https://github.com/MacKomatsu/OpenCLIntro" target="_top">https://github.com/MacKomatsu/OpenCLIntro</a></p><p>この章で扱うイメージファイルでソースコードが使うのは以下の２つです。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<a class="ulink" href="https://github.com/MacKomatsu/OpenCLIntro/blob/master/SAMPLE.png" target="_top">https://github.com/MacKomatsu/OpenCLIntro/blob/master/SAMPLE.png</a>
+</li><li class="listitem">
+<a class="ulink" href="https://github.com/MacKomatsu/OpenCLIntro/blob/master/SAMPLE3.png" target="_top">https://github.com/MacKomatsu/OpenCLIntro/blob/master/SAMPLE3.png</a>
+</li></ul></div><p>ソースディレクトリにダウンロードしたPNGファイルを保存してください。</p></div><div class="figure"><a id="idm5670"></a><p class="title"><strong>図9.2 SAMPLE.png</strong></p><div class="figure-contents"><div class="mediaobject"><img src="images/SAMPLE.png" alt="width=200" /></div></div></div><br class="figure-break" /><div class="figure"><a id="idm5677"></a><p class="title"><strong>図9.3 SAMPLE3.png</strong></p><div class="figure-contents"><div class="mediaobject"><img src="images/SAMPLE3.png" alt="width=200" /></div></div></div><br class="figure-break" /><p>この章でのプロジェクトの構造は以下のようになります。ファイルの出力はtarget/classesのパッケージ内とします。サンプルコードでは、「image.png」というファイルを出力しますが、target/classes下に出力されています。</p><p><strong>図：ディレクトリ構造. </strong>
+</p><pre xmlns="" class="prettyprint">ImgProject
+├── pom.xml
+├── resources
+├── src
+│   ├── main
+│   │   └── java
+│   │       └── com
+│   │           └── book
+│   │               └── jocl
+│   │                   └── image
+│   │                       ├── ImageTest.java
+│   │                       ├── SAMPLE.png
+│   │                       ├── SAMPLE3.png
+│   │                       └── image.cl
+│   └── test
+│       └── java
+└── target
+    ├── classes
+    │   └── com
+    │       └── book
+    │           └── jocl
+    │               └── image
+    │                   ├── ImageReadWriteTest.class
+    │                   ├── ImageTest.class
+    │                   ├── SAMPLE.png
+    │                   ├── SAMPLE3.png
+    │                   ├── image.cl
+    │                   └── image.png
+    └── test-classes</pre><p>
+</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clcreateimage"></a>9.7.2. clCreateImage</h3></div></div></div><p>clCreateImage関数は1Dイメージ、1Dイメージバッファ、1Dイメージ配列、2Dイメージ、2Dイメージ配列、3Dイメージオブジェクトを生成します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳細は「表：clCreateImage」（<a class="xref" href="apbs15.html#clCreateImage" title="表B.37 表：clCreateImage">表B.37「表：clCreateImage」</a>）、「表：host_ptrバッファサイズ」（<a class="xref" href="apbs15.html#host_ptr" title="表B.38 表：host_ptrバッファサイズ">表B.38「表：host_ptrバッファサイズ」</a>）、「表：cl_image_format」（<a class="xref" href="ch09s07.html#cl_image_format" title="表9.1 表：cl_image_format">表9.1「表：cl_image_format」</a>）、「表：cl_image_desc」（<a class="xref" href="apbs15.html#cl_image_desc" title="表B.42 表：cl_image_desc">表B.42「表：cl_image_desc」</a>）を参照ください。</p></div><p>関数の定義は以下のようになります。</p><pre xmlns="" class="prettyprint">cl_mem org.jocl.CL.clCreateImage(
+    cl_context context, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO47-1"></a>(1)
+    long flags, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO47-2"></a>(2)
+    cl_image_format image_format, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO47-3"></a>(3)
+    cl_image_desc image_desc, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO47-4"></a>(4)
+    Pointer host_ptr, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO47-5"></a>(5)
+    int[] errcode_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO47-6"></a>(6)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO47-1">(1)</a> </p></td><td valign="top" align="left"><p>
+有効なOpenCLコンテキストを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO47-2">(2)</a> </p></td><td valign="top" align="left"><p>
+生成されるイメージメモリオブジェクトの割当・確保に使うメモリ領域と使用情報を指定するビットフィールド。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO47-3">(3)</a> </p></td><td valign="top" align="left"><p>
+確保する領域内に格納するイメージ形式プロパティを記述する構造体へのポインタを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO47-4">(4)</a> </p></td><td valign="top" align="left"><p>
+確保する領域内に格納するイメージの型と次元数を記述する構造体へのポインタを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO47-5">(5)</a> </p></td><td valign="top" align="left"><p>
+アプリケーションが確保済みのイメージデータを指すポインタを指定。3Dイメージまたは2Dイメージ配列に対して、host_ptrが指定するイメージデータは2D画像スライスが連続して順番に並んだ状態で格納されます。各2Dイメージは走査線が連続して順番に並んだものです。各走査線は、画素が順番に並んだ状態で保存される。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO47-6">(6)</a> </p></td><td valign="top" align="left"><p>
+適切なエラーコードを戻す。
+</p></td></tr></table></div><p>引数にはcl_image_foramt、cl_image_descという構造体があります。</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">
+cl_image_format
+</span></dt><dd>
+CL_R、CL_RGB、CL_RGBA等のチャネル順序等を指定します。
+</dd><dt><span class="term">
+cl_image_desc
+</span></dt><dd>
+次元数、高さ、幅を指定します。
+</dd></dl></div><p>では例を見てみましょう。</p><pre xmlns="" class="prettyprint">cl_image_desc desc = new cl_image_desc();
+desc.image_type = CL_MEM_OBJECT_IMAGE2D; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO48-1"></a>(1)
+desc.image_width = img.getIconWidth(); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO48-2"></a>(2)
+desc.image_height = img.getIconHeight(); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO48-3"></a>(3)
+desc.num_mip_levels = 0;
+desc.num_samples = 0;
+
+cl_image_format format = new cl_image_format();
+format.image_channel_order = CL_RGBA; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO48-4"></a>(4)
+format.image_channel_data_type = CL_UNORM_INT8; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO48-5"></a>(5)
+
+
+cl_mem img_mem = clCreateImage(context,
+        CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+        format, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO48-6"></a>(6)
+        desc, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO48-7"></a>(7)
+        Pointer.to(dbb.getData()), //<a xmlns="http://www.w3.org/1999/xhtml" id="CO48-8"></a>(8)
+        null);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO48-1">(1)</a> </p></td><td valign="top" align="left"><p>
+イメージの次元を2に指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO48-2">(2)</a> </p></td><td valign="top" align="left"><p>
+イメージの幅を指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO48-3">(3)</a> </p></td><td valign="top" align="left"><p>
+イメージの高さを指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO48-4">(4)</a> </p></td><td valign="top" align="left"><p>
+イメージのチャネル順序
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO48-5">(5)</a> </p></td><td valign="top" align="left"><p>
+チャネルデータ型
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO48-6">(6)</a> </p></td><td valign="top" align="left"><p>
+イメージ型式
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO48-7">(7)</a> </p></td><td valign="top" align="left"><p>
+イメージ属性
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO48-8">(8)</a> </p></td><td valign="top" align="left"><p>
+イメージデータ
+</p></td></tr></table></div><p>この例では2次元のイメージを既に読み込んだ事を前提とします。また幅と高さについても既知の情報とします。つまりイメージオブジェクトをclCreateImage関数を用いて生成する際のは、イメージを読み込み後となります。</p><p>チャネル順序とチャネルデータ型についても既知の情報とします。チャネル順序についてはJava画像処理パッケージが取得することができます。</p><p>チャネルデータ型についてはread_imagefで取り扱える正規化符号無し整数（CL_UNORM_INT8）を指定します。最後の8はビット数を示します。イメージのビット数（libpngではIHDRのbit_depthで取得可能）に合わせることと、浮動小数点としてアクセスしたいか、整数としてアクセスしたいかによってデータ型を使い分けることになります。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_実装例_5"></a>9.7.3. 実装例</h3></div></div></div><p>それでは実装をしてみたいと思います。以下のソースコードでは、SAMPLE3.pngというファイルをJavaの標準パッケージを使い読みこみます。読み込んだデータをclCreateImage関数でイメージオブジェクトを生成します。</p><p>さらにイメージオブジェクトをカーネルで処理後に、clEnqueueReadImage関数を使って、イメージオブジェクトからホストのメモリ領域にデータを読み込みます。</p><p>最後にImageIO.writeという関数を使って、ホストメモリ領域にあるイメージデータをimage.pngファイルに書き込みます。</p><pre xmlns="" class="prettyprint">package com.book.jocl.image;
+
+import static org.jocl.CL.*;
+
+import org.jocl.CL;
+import org.jocl.Pointer;
+import org.jocl.Sizeof;
+import org.jocl.cl_command_queue;
+import org.jocl.cl_context;
+import org.jocl.cl_context_properties;
+import org.jocl.cl_device_id;
+import org.jocl.cl_image_desc;
+import org.jocl.cl_image_format;
+import org.jocl.cl_kernel;
+import org.jocl.cl_mem;
+import org.jocl.cl_platform_id;
+import org.jocl.cl_program;
+
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
+import java.awt.*;
+import javax.swing.*;
+import javax.imageio.*;
+import java.io.*;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.Scanner;
+
+
+public class ImageTest {
+        private static final String IMAGE_PATH = "SAMPLE.png";
+        private static final String KERNEL_PATH = "image.cl";
+        private static final String KERNEL_FUNC = "image_filter";
+
+    private static cl_context context;
+    private static cl_command_queue queue;
+    private static cl_program program;
+    private static cl_kernel kernel;
+
+    private static ImageIcon img;
+    private static int width;
+    private static int height;
+
+        public static void main(String[] args) throws Exception {
+
+                CL.setExceptionsEnabled(true);
+
+                cl_platform_id platform[] = new cl_platform_id[1];
+                clGetPlatformIDs(1,  platform, null);
+                cl_device_id device[] = new cl_device_id[1];
+                int num_devices[] = new int[1];
+                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, num_devices);
+                cl_context_properties props = new cl_context_properties();
+                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
+                context = clCreateContext(props, 1, device, null, null, null);
+                queue = clCreateCommandQueue(context, device[0], 0, null);
+
+                StringBuffer sb = new StringBuffer();
+                URL resource = ImageTest.class.getResource(KERNEL_PATH);
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                System.out.println(path);
+                Scanner sc = new Scanner(new File(path));
+                while(sc.hasNext()) {
+                        sb.append(sc.nextLine() + "\n");
+                }
+        program = clCreateProgramWithSource(context,
+                1, new String[]{sb.toString()}, null, null);
+
+        clBuildProgram(program, 0, null, null, null, null);
+
+        kernel = clCreateKernel(program, KERNEL_FUNC, null);
+
+                URL imgResource = ImageTest.class.getResource(IMAGE_PATH);
+                String imgPath = Paths.get(imgResource.toURI()).toFile().getAbsolutePath();
+                System.out.println(imgPath);
+        img = new ImageIcon(imgResource);
+
+        width = img.getIconWidth();
+        height = img.getIconHeight();
+
+        BufferedImage bimg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics g = bimg.createGraphics();
+        img.paintIcon(null, g, 0,0);
+        g.dispose();
+        DataBufferInt dbb = (DataBufferInt)bimg.getRaster().getDataBuffer();
+            int[] intArray = dbb.getData();
+            System.out.println(intArray.length);
+
+
+        cl_image_format format = new cl_image_format();
+        format.image_channel_data_type = CL_UNORM_INT8;
+        format.image_channel_order = CL_RGBA;
+        cl_image_desc desc = new cl_image_desc();
+        desc.image_height = img.getIconHeight();
+        desc.image_width = img.getIconWidth();
+        desc.num_mip_levels = 0;
+        desc.num_samples = 0;
+        desc.image_type = CL_MEM_OBJECT_IMAGE2D;
+
+        cl_mem img_mem = clCreateImage(context,
+                        CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                        format,
+                        desc,
+                        Pointer.to(dbb.getData()),
+                        null);
+
+        cl_mem dst_img_mem = clCreateImage(context,
+                        CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR,
+                        format,
+                        desc,
+                        null,
+                        null);
+
+        clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(img_mem));
+        clSetKernelArg(kernel, 1, Sizeof.cl_mem, Pointer.to(dst_img_mem));
+
+        long[] global_work_size = new long[] {300,300,0};
+        long[] local_work_size = new long[] {1,1,0};
+        clEnqueueNDRangeKernel(queue, kernel, 2, null, global_work_size, local_work_size, 0, null, null);
+
+        int[] dstArray = new int[90000];
+
+        clEnqueueReadImage(queue, dst_img_mem, CL_TRUE, new long[]{0,0,0}, new long[]{300,300,1},0, 0, Pointer.to(dstArray), 0, null, null);
+
+                BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                image.setRGB(0, 0, width, height, dstArray, 0, width);
+
+                System.out.println(width+"-"+height);
+
+                resource = ImageTest.class.getResource("./");
+                path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                System.out.println(path+"/image.png");
+        ImageIO.write(image, "png", new File(path+"/image.png"));
+
+        clReleaseMemObject(img_mem);
+        clReleaseMemObject(dst_img_mem);
+                clReleaseDevice(device[0]);
+                clReleaseContext(context);
+                clReleaseCommandQueue(queue);
+                clReleaseProgram(program);
+
+        }
+
+}</pre><div class="section"><div class="titlepage"><div><div><h4 class="title"><a id="_カーネル"></a>カーネル</h4></div></div></div><p>カーネルでイメージを処理をするのは、本書後半で解説するため、ここでは最低限の解説にとどめさせて頂きます。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「OpenCL-Cイメージ処理関数」（<a class="xref" href="pt03s17.html" title="17. OpenCL-Cイメージ処理関数">「OpenCL-Cイメージ処理関数」</a>）を参照ください。</p></div><p>以下が前の項目で使ったプログラムオブジェクトを構成するカーネル関数です。</p><p><strong>image_helloworld.cl. </strong>
+</p><pre xmlns="" class="prettyprint">__constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
+             CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-1"></a>(1)
+
+__kernel void helloworld(read_only image2d_t src_image, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-2"></a>(2)
+                        write_only image2d_t dst_image) { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-3"></a>(3)
+
+        int2 coord = (int2)(get_global_id(0), get_global_id(1)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-4"></a>(4)
+        float4 pixel = read_imagef( //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-5"></a>(5)
+                                        src_image, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-6"></a>(6)
+                                        sampler, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-7"></a>(7)
+                                        (int2)(coord.x,coord.y)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-8"></a>(8)
+
+        write_imagef(dst_image, coord, pixel); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO49-9"></a>(9)
+}</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-1">(1)</a> </p></td><td valign="top" align="left"><p>
+サンプラーを指定。（データ型により使えるパラメーターが異なります。例えば、`CL_UNORM_INT8`の場合は`CLK_NORMALIZED_COORDS_FALSE`と`CLK_FILTER_NEAREST`は必須の設定です）
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-2">(2)</a> </p></td><td valign="top" align="left"><p>
+イメージオブジェクトはimage2d_t型として宣言します。読み込みにしか使いませんので、`read_only`修飾子を付加します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-3">(3)</a> </p></td><td valign="top" align="left"><p>
+イメージオブジェクトはimage2d_t型として宣言します。書き込みにしか使いませんので、`write_only`修飾子を付加します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-4">(4)</a> </p></td><td valign="top" align="left"><p>
+x,y座標を取得します。この場合の座標とはインデックス空間内で定義されます。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-5">(5)</a> </p></td><td valign="top" align="left"><p>
+`read_imagef`は浮動小数点数で表した画素情報）を所定のチャネル順序（戻り値型がfloat4をしているので、RGBA等の4チャネルが前提で、`src_image`から取り出します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-6">(6)</a> </p></td><td valign="top" align="left"><p>
+引数にあるイメージオブジェクト、`src_image`を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-7">(7)</a> </p></td><td valign="top" align="left"><p>
+サンプラーを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-8">(8)</a> </p></td><td valign="top" align="left"><p>
+画素の座標を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO49-9">(9)</a> </p></td><td valign="top" align="left"><p>
+イメージオブジェクト`dst_image`に画素情報を書き込み。
+</p></td></tr></table></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_イメージデータのバッファ"></a>9.7.4. イメージデータのバッファ</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>「表：host_ptrバッファサイズ」（<a class="xref" href="apbs15.html#host_ptr" title="表B.38 表：host_ptrバッファサイズ">表B.38「表：host_ptrバッファサイズ」</a>）を参照ください。</p></div><p>`host_ptr`引数に指定するイメージデータに割り当てるメモリ領域は以下の表のようにイメージ型によって異なります。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_image_format"></a>9.7.5. cl_image_format</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳細は「表：cl_image_format」（<a class="xref" href="ch09s07.html#cl_image_format" title="表9.1 表：cl_image_format">表9.1「表：cl_image_format」</a>）、「表：image_channel_order」（<a class="xref" href="apbs15.html#image_channel_order" title="表B.40 表：image_channel_order">表B.40「表：image_channel_order」</a>）と「表：image_channel_data_type」（<a class="xref" href="apbs15.html#image_channel_data_type" title="表B.41 表：image_channel_data_type">表B.41「表：image_channel_data_type」</a>）を参照ください。</p></div><p>イメージの形式を記述する構造体は次の通り定義されています。</p><div class="table"><a id="cl_image_format"></a><p class="title"><strong>表9.1 表：cl_image_format</strong></p><div class="table-contents"><table class="table" summary="表：cl_image_format" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /></colgroup><tbody><tr><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout"> cl_image_format</pre></td></tr><tr><td style="" align="left" valign="top"><pre class="literallayout">     typedef struct _cl_image_format {
+          cl_channel_order    image_channel_order;
+          cl_channel_type     image_channel_data_type;
+     } cl_image_format;</pre></td></tr></tbody></table></div></div><br class="table-break" /><p>image_channel_orderは、チャネル数とチャネルの配置、つまりイメージ内に保存されるチャネルのメモリ配置を指定します。</p><p>`image_channel_data_type`は、チャネルのデータ型を指定します。`image_channel_data_type`と `image_channel_order`で定められる要素ごとのビット数は、2のべきでなければなりません。</p><p>`image_channel_data_type`の値では、`CL_UNORM_SHORT_565`、`CL_UNORM_SHORT_555`、`CL_UNORM_INT_101010`は特別なイメージ形式となります。</p><p>各チャネル要素は`unsigned short`型または`unsigned int`型に詰められています。データの詰め方としては、最初のチャネルがビットフィールド内の最上位ビットになるように詰められます。次のチャネルは占有するビット領域が連続になるようにすぐ下のビット領域に詰められます。</p><p>`CL_UNORM_SHORT_565`の場合、Rが15から11ビット、Gが10から5ビット、Bが4から0ビットに詰められます。</p><p>`CL_UNORM_SHORT_555`の場合、15ビット目は未定義となり、Rが14から10ビット、Gが9から5ビット、Bが4から0ビットに詰められます。</p><p>`CL_UNORM_INT_101010`の場合、31から30ビットは未定義となり、R が29から20ビット、G が19から10ビット、B が9から0ビットに詰められます。</p><div class="section"><div class="titlepage"><div><div><h4 class="title"><a id="_実装例_6"></a>実装例</h4></div></div></div><p>2次元イメージオブジェクトで使う一般的な、イメージ記述子とイメージ型式は以下のようになります。</p><pre xmlns="" class="prettyprint">/* 入力イメージ形式を設定します。*/
+png_format.image_channel_order = CL_RGBA;
+png_format.image_channel_data_type = CL_UNORM_INT8;</pre><p>ウェブの世界で使うCSSで使う型式とするには<code class="literal">CL_UNSIGNED_INT8`とを選びます。`CL_UNORM_INT8`は</code>[0.0,…,1.0]`の正規化された値をとります。画像処理をするには、正規化した方が便利ですので覚えておくと良いでしょう。</p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_イメージ記述子"></a>9.7.6. イメージ記述子</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>NOTE: 詳細は「表：cl_image_desc」（<a class="xref" href="apbs15.html#cl_image_desc" title="表B.42 表：cl_image_desc">表B.42「表：cl_image_desc」</a>）を参照ください。</p></div><p>OpenCLでイメージを処理する場合、イメージ記述子を設定しなくてはいけません。記述子で最低限設定が必要なものは、`cl_mem_object_type`と、高さ、幅、奥行きに関する情報です。</p><p>`cl_mem_object_type`については以下のものを設定できます。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+CL_MEM_OBJECT_IMAGE1D
+</li><li class="listitem">
+CL_MEM_OBJECT_IMAGE1D_BUFFER
+</li><li class="listitem">
+CL_MEM_OBJECT_IMAGE1D_ARRAY
+</li><li class="listitem">
+CL_MEM_OBJECT_IMAGE2D
+</li><li class="listitem">
+CL_MEM_OBJECT_IMAGE2D_ARRAY
+</li><li class="listitem">
+CL_MEM_OBJECT_IMAGE3D
+</li></ul></div><p>幅、高さ、奥行きについてはピクセル数などを指定できます。本書では`300 x 300`画素の画像を使うことが多いです。</p><p>イメージ記述子はC構造体のため、以下のように設定することができます。</p><pre xmlns="" class="prettyprint">/*イメージ属性を設定します。*/
+cl_image_desc image_desc;
+image_desc.image_type = CL_MEM_OBJECT_IMAGE2D;
+image_desc.image_width = width;
+image_desc.image_height = height;
+image_desc.num_mip_levels = 0;
+image_desc.num_samples = 0;
+image_desc.buffer = NULL;</pre></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetsupportedimageformats"></a>9.7.7. clGetSupportedImageFormats</h3></div></div></div><p>clGetSupportedImageFormats関数はコンテキスト内のデバイスがサポートするイメージ型式の和集合を戻します。イメージメモリオブジェクトに関する以下の情報を指定したときにOpenCL実装がサポートするイメージ形式の一覧取得に使うことができます。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetSupportedImageFormats」（<a class="xref" href="apbs15.html#clGetSupportedImageFormats" title="表B.43 表：clGetSupportedImageFormats">表B.43「表：clGetSupportedImageFormats」</a>）を参照ください。</p></div><p>関数の定義は以下のようになります。</p><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetSupportedImageFormats(
+    cl_context context, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO50-1"></a>(1)
+    long flags, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO50-2"></a>(2)
+    int image_type, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO50-3"></a>(3)
+    int num_entries, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO50-4"></a>(4)
+    cl_image_format[] image_formats, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO50-5"></a>(5)
+    int[] num_image_formats) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO50-6"></a>(6)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO50-1">(1)</a> </p></td><td valign="top" align="left"><p>
+イメージオブジェクトを生成する有効なOpenCLコンテキストを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO50-2">(2)</a> </p></td><td valign="top" align="left"><p>
+イメージオブジェクトの割当に使うメモリ領域や、バッファオブジェクトの使用情報を指定するビットフィールド。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO50-3">(3)</a> </p></td><td valign="top" align="left"><p>
+イメージ型を記述。CL_MEM_OBJECT_IMAGE1D、 CL_MEM_OBJECT_IMAGE1D_BUFFER、CL_MEM_OBJECT_IMAGE2D、 CL_MEM_OBJECT_IMAGE3D、CL_MEM_OBJECT_IMAGE1D_ARRAYまたは CL_MEM_OBJECT_IMAGE2D_ARRAYの指定ができる。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO50-4">(4)</a> </p></td><td valign="top" align="left"><p>
+image_formatsが指すメモリ領域に戻せるエントリの個数を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO50-5">(5)</a> </p></td><td valign="top" align="left"><p>
+サポートするイメージ形式の一覧が戻されるメモリ領域へのポインタを指定。戻されるエントリは、OpenCL実装がサポートするcl_image_format構造体。image_formatsがNULLの場合は無視される。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO50-6">(6)</a> </p></td><td valign="top" align="left"><p>
+contextおよびflagsで指定した条件でサポートされるイメージ形式の数を戻す。num_image_formatsがNULLの場合は無視される。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_サポートするイメージ型式"></a>9.7.8. サポートするイメージ型式</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳細は「表：image_formats」（<a class="xref" href="ch09s07.html#cl_image_format" title="表9.1 表：cl_image_format">表9.1「表：cl_image_format」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s06.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s08.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

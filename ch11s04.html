@@ -33,22 +33,22 @@ FFT(f,N/2,offset+N/2) → <span class="inlinemediaobject"><img src="images/F_N2.
   return i;
 }</pre></div><p>例えば整数の「3」のビット反転をする場合は3を2進数にまず変換します。</p><pre xmlns="" class="prettyprint">00000000000000000000000000000011</pre><p>これをビット反転すると以下のような2進数の列に変換されます。</p><pre xmlns="" class="prettyprint">11000000000000000000000000000000</pre><p>ビットの反転は、このように対応する位置にあるビットをスワップ（入れ替え）します。「3」の例で言えば、1桁目と32桁目のビットを交換したことになります。</p><p>これを効率的に計算するアルゴリズムは多く開発されており、Integer.reverseも代表的なアルゴリズムの一つを採用しています。</p><p>しかしFFTの文脈では、32ビットの反転が必要とされることはほとんどありません。インデックスの数が512（0ー511）であれば9ビット、4096（0ー4095）であれば、12ビットを要します。</p><p>ではビット反転の実装を考えてみます。</p><pre xmlns="" class="prettyprint">private static int reverseBit(int x, int maxBits) {
     int bit = 0;
-    while (maxBits != 0){ //<a xmlns="http://www.w3.org/1999/xhtml" id="CO125-1"></a>(1)
-        bit &lt;&lt;=1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO125-2"></a>(2)
-        bit |=( x &amp;1 ); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO125-3"></a>(3)
-        x &gt;&gt;=1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO125-4"></a>(4)
-        maxBits&gt;&gt;=1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO125-5"></a>(5)
+    while (maxBits != 0){ //<a xmlns="http://www.w3.org/1999/xhtml" id="CO112-1"></a>(1)
+        bit &lt;&lt;=1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO112-2"></a>(2)
+        bit |=( x &amp;1 ); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO112-3"></a>(3)
+        x &gt;&gt;=1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO112-4"></a>(4)
+        maxBits&gt;&gt;=1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO112-5"></a>(5)
     }
     return bit;
-}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO125-1">(1)</a> </p></td><td valign="top" align="left"><p>
+}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO112-1">(1)</a> </p></td><td valign="top" align="left"><p>
 maxBits変数が0になるまで繰り返します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO125-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO112-2">(2)</a> </p></td><td valign="top" align="left"><p>
 bit変数を左に一桁分シフトします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO125-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO112-3">(3)</a> </p></td><td valign="top" align="left"><p>
 引数xの1桁目の値をbit変数にコピーします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO125-4">(4)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO112-4">(4)</a> </p></td><td valign="top" align="left"><p>
 引数xを左シフトします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO125-5">(5)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO112-5">(5)</a> </p></td><td valign="top" align="left"><p>
 maxBitsを右シフトします。
 </p></td></tr></table></div><p>シフト演算子は2進数の1/0のビットの読み込む順番を制御するために使います。引数xは右シフトすることにより、右側のビットから読み込み、変数xの右側にコピーしたビットは、左にシフトすることで、ビットを反転していきます。</p><p>最後に配列をビット反転した添字に基づいて並び変えてみます。</p><pre xmlns="" class="prettyprint">private static void reverseData(int N, double[] data) {
     for(int i = 2; i &lt; N*2; i+=2) {

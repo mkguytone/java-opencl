@@ -24,26 +24,26 @@ int main() {
 </p><p><a id="CMakeListsDescription"></a><strong>CMakeLists.txt. </strong>
 </p><pre xmlns="" class="prettyprint">cmake_minimum_required (VERSION 3.1)
 project(mult)
-find_package(OpenCL REQUIRED) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO134-1"></a>(1)
-include_directories(${OpenCL_INCLUDE_DIRS}) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO134-2"></a>(2)
-link_directories(${OpenCL_LIBRARIES}) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO134-3"></a>(3)
-add_executable (helloworld basic_helloworld.cxx) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO134-4"></a>(4)
-target_include_directories (helloworld PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO134-5"></a>(5)
-target_link_libraries (helloworld ${OpenCL_LIBRARIES}) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO134-6"></a>(6)
-configure_file(basic_helloworld.cl ${CMAKE_CURRENT_BINARY_DIR}/basic_helloworld.cl COPYONLY) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO134-7"></a>(7)</pre><p>
-</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO134-1">(1)</a> </p></td><td valign="top" align="left"><p>
+find_package(OpenCL REQUIRED) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO121-1"></a>(1)
+include_directories(${OpenCL_INCLUDE_DIRS}) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO121-2"></a>(2)
+link_directories(${OpenCL_LIBRARIES}) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO121-3"></a>(3)
+add_executable (helloworld basic_helloworld.cxx) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO121-4"></a>(4)
+target_include_directories (helloworld PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO121-5"></a>(5)
+target_link_libraries (helloworld ${OpenCL_LIBRARIES}) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO121-6"></a>(6)
+configure_file(basic_helloworld.cl ${CMAKE_CURRENT_BINARY_DIR}/basic_helloworld.cl COPYONLY) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO121-7"></a>(7)</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO121-1">(1)</a> </p></td><td valign="top" align="left"><p>
 OpenCLパッケージを検索します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO134-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO121-2">(2)</a> </p></td><td valign="top" align="left"><p>
 FindOpenCL.cmakeの変数「OpenCL_INCLUDE_DIRS」をインクルードするディレクトリとして指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO134-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO121-3">(3)</a> </p></td><td valign="top" align="left"><p>
 FindOpenCL.cmakeの変数「OpenCL_LIBRARIES」をリンクするライブラリとして指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO134-4">(4)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO121-4">(4)</a> </p></td><td valign="top" align="left"><p>
 ターゲット「hellowolrd」と依存ファイル「basic_helloworld.cxx」をターゲットのルールとして追加。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO134-5">(5)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO121-5">(5)</a> </p></td><td valign="top" align="left"><p>
 ターゲットのインクルードディレクトリとして「CMAKE_CURRENT_SOURCE_DIR」を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO134-6">(6)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO121-6">(6)</a> </p></td><td valign="top" align="left"><p>
 ターゲット「helloworld」とOpenCLライブラリをリンク。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO134-7">(7)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO121-7">(7)</a> </p></td><td valign="top" align="left"><p>
 カーネルソースファイル「basic_helloworld.cl」をビルドディレクトリにコピー。
 </p></td></tr></table></div><p>「cmake 3.1」以降には、「FindOpenCL.cmake」というモジュールが追加されています。パッケージが見つかると以下の変数が設定されます。</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
 OpenCL_FOUND

@@ -27,46 +27,46 @@ if(in_range) {
 }</pre><p>gid % (distance &lt;&lt; 1)がdistanceより小さい場合に処理をするということになります。</p><p>それではカーネルのコードをすべて見てみましょう。</p><pre xmlns="" class="prettyprint">uint gid = get_global_id(0);
 uint lid = get_local_id(0);
 
-int in_range = isless(gid % (distance &lt;&lt; 1),distance); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-1"></a>(1)
+int in_range = isless(gid % (distance &lt;&lt; 1),distance); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-1"></a>(1)
 
-if(in_range) { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-2"></a>(2)
+if(in_range) { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-2"></a>(2)
 
-    uint middle = distance &lt;&lt; 1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-3"></a>(3)
-    int dir_mask = isgreaterequal(gid%(middle*2),middle); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-4"></a>(4)
+    uint middle = distance &lt;&lt; 1; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-3"></a>(3)
+    int dir_mask = isgreaterequal(gid%(middle*2),middle); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-4"></a>(4)
 
-    uint left = data[gid]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-5"></a>(5)
-    uint right = data[gid+distance]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-6"></a>(6)
+    uint left = data[gid]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-5"></a>(5)
+    uint right = data[gid+distance]; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-6"></a>(6)
     uint cmp_mask;
 
-    if(dir_mask) { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-7"></a>(7)
-        cmp_mask = left &lt; right ? 1 : 0; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-8"></a>(8)
+    if(dir_mask) { //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-7"></a>(7)
+        cmp_mask = left &lt; right ? 1 : 0; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-8"></a>(8)
     } else {
-        cmp_mask = left &gt; right ? 1 : 0; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-9"></a>(9)
+        cmp_mask = left &gt; right ? 1 : 0; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-9"></a>(9)
     }
-    data[gid] = select(left,right,cmp_mask); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-10"></a>(10)
-    data[gid+distance] = select(right,left,cmp_mask); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO129-11"></a>(11)
+    data[gid] = select(left,right,cmp_mask); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-10"></a>(10)
+    data[gid+distance] = select(right,left,cmp_mask); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-11"></a>(11)
 
-}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-1">(1)</a> </p></td><td valign="top" align="left"><p>
+}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-1">(1)</a> </p></td><td valign="top" align="left"><p>
 グローバルIDのインデックス空間をdistanceの2倍の要素の範囲で分割して、それがdistanceより小さい場合に真を返します。処理すべき添字は、distanceより小さい値を持つ、グローバルIDの場合とします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-2">(2)</a> </p></td><td valign="top" align="left"><p>
 カーネルは、①でdistanceの2倍で除したグローバルIDの値がdistanceより小さい場合は、処理点から除外。if分岐のカッコ内の処理は効率的でないため、前のステップで計算したフラグをif分岐のカッコに配置します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-3">(3)</a> </p></td><td valign="top" align="left"><p>
 スワップ距離の2倍を中間点の倍数として求めます。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-4">(4)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-4">(4)</a> </p></td><td valign="top" align="left"><p>
 グローバルIDを中間点の２倍（つまり上昇配列と下降配列を足したデータ要素数）で除した剰余が中間点よりも大きいか同じ場合に、「下降」方向フラグ（dir_mask）をオンにします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-5">(5)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-5">(5)</a> </p></td><td valign="top" align="left"><p>
 処理点の値をleft変数に保存。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-6">(6)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-6">(6)</a> </p></td><td valign="top" align="left"><p>
 処理点＋distanceの値をright変数に保存
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-7">(7)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-7">(7)</a> </p></td><td valign="top" align="left"><p>
 下降フラグがオンか判定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-8">(8)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-8">(8)</a> </p></td><td valign="top" align="left"><p>
 下降フラグがオンの場合で、leftがrightより小さい場合はスワップフラグ（cmp_mask）をオンにします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-9">(9)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-9">(9)</a> </p></td><td valign="top" align="left"><p>
 下降フラグがオンの場合で、leftがrightより大きい場合はスワップフラグ（cmp_mask）をオンにします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-10">(10)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-10">(10)</a> </p></td><td valign="top" align="left"><p>
 スワップフラグ（cmp_mask）がオンの場合にleftとrightをスワップ（入れ替え）します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO129-11">(11)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-11">(11)</a> </p></td><td valign="top" align="left"><p>
 スワップフラグ（cmp_mask）がオンの場合にrightとleftをスワップ（入れ替え）します。
 </p></td></tr></table></div><p>上記のコードをデータサイズが16とした場合は、以下のような処理が行われます。dがスワップ距離、gdivが「gid % (distance &lt;&lt; 1)」、pairがスワップペア、dataが処理点とスワップ点の値、gmodはグローバルIDを中間点の２倍で除した剰余です。</p><pre xmlns="" class="prettyprint">d = 1, gdiv = 0, pair: 0-1, data: 10, 16, gmod = 0
 d = 1, gdiv = 0, pair: 4-5, data: 10, 12, gmod = 0

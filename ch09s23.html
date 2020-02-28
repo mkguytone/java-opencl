@@ -1,60 +1,33 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.23. カーネルオブジェクト情報の取得</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s22.html" title="9.22. カーネル引数設定" /><link rel="next" href="ch09s24.html" title="9.24. カーネルの実行" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>9.23. マーカー・バリアー・イベント待機</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch09.html" title="第9章 OpenCLランタイム" /><link rel="prev" href="ch09s22.html" title="9.22. イベントオブジェクト" /><link rel="next" href="ch09s24.html" title="9.24. プロファイリング" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s22.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s24.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_カーネルオブジェクト情報の取得"></a>9.23. カーネルオブジェクト情報の取得</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetkernelinfo"></a>9.23.1. clGetKernelInfo</h3></div></div></div><p>clGetKernelInfo関数はカーネルオブジェクトについての情報を取得します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetKernelInfo」（<a class="xref" href="apbs32.html#clGetKernelInfo" title="表B.82 表：clGetKernelInfo">表B.82「表：clGetKernelInfo」</a>）と「表：cl_kernel_info」（<a class="xref" href="apbs32.html#cl_kernel_info" title="表B.83 表：cl_kernel_info">表B.83「表：cl_kernel_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetKernelInfo(
-    cl_kernel kernel, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO87-1"></a>(1)
-    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO87-2"></a>(2)
-    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO87-3"></a>(3)
-    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO87-4"></a>(4)
-    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO87-5"></a>(5)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO87-1">(1)</a> </p></td><td valign="top" align="left"><p>
-カーネルオブジェクトを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO87-2">(2)</a> </p></td><td valign="top" align="left"><p>
-取得する情報を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO87-3">(3)</a> </p></td><td valign="top" align="left"><p>
-param_valueが指すメモリのサイズをバイトで指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO87-4">(4)</a> </p></td><td valign="top" align="left"><p>
-param_nameに指定した情報についての値が戻されるメモリ空間へのポインタを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO87-5">(5)</a> </p></td><td valign="top" align="left"><p>
-param_valueにコピーされるデータの実際のサイズをバイトで戻す。
-</p></td></tr></table></div><p>戻された参照カウントの値はすぐに古くなるものと考えるべき。アプリケーションでの一般的な使用には向かず、メモリリークを検出する等の用途に使うことができる。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_kernel_info"></a>9.23.2. cl_kernel_info</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_kernel_info」（<a class="xref" href="apbs32.html#cl_kernel_info" title="表B.83 表：cl_kernel_info">表B.83「表：cl_kernel_info」</a>）を参照ください。</p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetkernelworkgroupinfo"></a>9.23.3. clGetKernelWorkGroupInfo</h3></div></div></div><p>clGetKernelWorkGroupInfoはカーネルオブジェクトに関するデバイス特有の情報を取得します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetKernelWorkGroupInfo」（<a class="xref" href="apbs32.html#clGetKernelWorkGroupInfo" title="表B.84 表：clGetKernelWorkGroupInfo">表B.84「表：clGetKernelWorkGroupInfo」</a>）と「表：cl_kernel_work_group_info」（<a class="xref" href="apbs32.html#cl_kernel_work_group_info" title="表B.85 表：cl_kernel_work_group_info">表B.85「表：cl_kernel_work_group_info」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetKernelWorkGroupInfo(
-    cl_kernel kernel, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO88-1"></a>(1)
-    cl_device_id device, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO88-2"></a>(2)
-    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO88-3"></a>(3)
-    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO88-4"></a>(4)
-    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO88-5"></a>(5)
-    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO88-6"></a>(6)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO88-1">(1)</a> </p></td><td valign="top" align="left"><p>
-カーネルオブジェクトを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO88-2">(2)</a> </p></td><td valign="top" align="left"><p>
-kernelに関連付けられたOpenCLデバイスデバイスのリストの中からひとつを指定。デバイスのリストは、カーネルと関連付けられたOpenCLコンテキスト内のデバイスのリストとなる。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO88-3">(3)</a> </p></td><td valign="top" align="left"><p>
-取得する情報を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO88-4">(4)</a> </p></td><td valign="top" align="left"><p>
-param_nameに指定した情報についての値が戻されるメモリ空間へのポインタ
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO88-5">(5)</a> </p></td><td valign="top" align="left"><p>
-param_valueが指すメモリのサイズをバイトで指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO88-6">(6)</a> </p></td><td valign="top" align="left"><p>
-param_valueに複製されるデータの実際のサイズをバイトで戻す。
-</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_kernel_work_group_info"></a>9.23.4. cl_kernel_work_group_info</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_kernel_work_group_info」（<a class="xref" href="apbs32.html#cl_kernel_work_group_info" title="表B.85 表：cl_kernel_work_group_info">表B.85「表：cl_kernel_work_group_info」</a>）を参照ください。</p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clgetkernelarginfo"></a>9.23.5. clGetKernelArgInfo</h3></div></div></div><p>clGetKernelArgInfo関数はカーネル引数に関する情報を戻します。カーネル引数の情報は、kernelと関連付けられたプログラムオブジェクトがclCreateProgramWithSourceで生成され、実行可能プログラムが、clBuildProgramまたはclCompileProgramのオプション引数の-cl-kernel-arg-infoオプションを指定しビルドした場合に限り、使用が可能となります。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clGetKernelArgInfo」（<a class="xref" href="apbs32.html#clGetKernelArgInfo" title="表B.86 表：clGetKernelArgInfo">表B.86「表：clGetKernelArgInfo」</a>）と「表：cl_kernel_arg_info」（<a class="xref" href="apbs32.html#cl_kernel_arg_info" title="表B.87 表：cl_kernel_arg_info">表B.87「表：cl_kernel_arg_info」</a>）を参照ください。</p></div><p>関数の定義は以下のようになります。</p><pre xmlns="" class="prettyprint">int org.jocl.CL.clGetKernelArgInfo(
-    cl_kernel kernel, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-1"></a>(1)
-    int arg_indx, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-2"></a>(2)
-    int param_name, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-3"></a>(3)
-    long param_value_size, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-4"></a>(4)
-    Pointer param_value, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-5"></a>(5)
-    long[] param_value_size_ret) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO89-6"></a>(6)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-1">(1)</a> </p></td><td valign="top" align="left"><p>
-カーネルオブジェクトを指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-2">(2)</a> </p></td><td valign="top" align="left"><p>
-引数添字（インデックス）を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-3">(3)</a> </p></td><td valign="top" align="left"><p>
-調べたい引数情報を指定。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-4">(4)</a> </p></td><td valign="top" align="left"><p>
-param_valueが指すメモリのバイトサイズ（バイトで表す）を指定。このサイズは戻り値型のサイズよりも大きい必要がある。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-5">(5)</a> </p></td><td valign="top" align="left"><p>
-適切な結果が戻るメモリを指すポインタ。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO89-6">(6)</a> </p></td><td valign="top" align="left"><p>
-param_valueに複製されるデータのサイズのバイトを戻す
-</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_cl_kernel_arg_info"></a>9.23.6. cl_kernel_arg_info</h3></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：cl_kernel_arg_info」（<a class="xref" href="apbs32.html#cl_kernel_arg_info" title="表B.87 表：cl_kernel_arg_info">表B.87「表：cl_kernel_arg_info」</a>）を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s22.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s24.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch09s22.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch09s24.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_マーカー_バリアー_イベント待機"></a>9.23. マーカー・バリアー・イベント待機</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clenqueuemarkerwithwaitlist"></a>9.23.1. clEnqueueMarkerWithWaitList</h3></div></div></div><p>clEnqueueMarkerWithWaitList関数はイベントリストが完了を待機するマーカーコマンドを挿入します。リストが空の場合、前にコマンドキューに挿入した全てのコマンドが完了するのを待機します。このイベントは待機すべきイベントを戻し、event_wait_list内の全イベントまたは以前に挿入（このコマンドがキューに挿入される前に）した全コマンドが完了することを保証します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueMarkerWithWaitList」（<a class="xref" href="apbs37.html#clEnqueueMarkerWithWaitList" title="表B.100 表：clEnqueueMarkerWithWaitList">表B.100「表：clEnqueueMarkerWithWaitList」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clEnqueueMarkerWithWaitList(
+    cl_command_queue command_queue, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO84-1"></a>(1)
+    int num_events_in_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO84-2"></a>(2)
+    cl_event[] event_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO84-3"></a>(3)
+    cl_event event) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO84-4"></a>(4)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO84-1">(1)</a> </p></td><td valign="top" align="left"><p>
+有効なコマンドキューを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO84-2">(2)</a> </p></td><td valign="top" align="left"><p>
+event_wait_listで指定したイベントオブジェクトの個数を指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO84-3">(3)</a> </p></td><td valign="top" align="left"><p>
+このコマンドが実行される前に完了されているイベントを指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO84-4">(4)</a> </p></td><td valign="top" align="left"><p>
+複製コマンドを識別するイベントオブジェクトが戻され、コマンド完了の確認やコマンド完了の待機に使える。
+</p></td></tr></table></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_clenqueuebarrierwithwaitlist"></a>9.23.2. clEnqueueBarrierWithWaitList</h3></div></div></div><p>clEnqueueBarrierWithWaitList関数はイベントリストが完了を待機するバリアーコマンドを挿入します。リストが空の場合、前にコマンドキューに挿入した全てのコマンドが完了するのを待機します。このコマンドはコマンド実行をブロック。つまり、コマンドが終了するまで、以降に挿入されたコマンドは実行されません。このイベントは待機すべきイベントを戻し、event_wait_list内の全イベントまたは以前に挿入（このコマンドがキューに挿入される前に）した全コマンドが完了することを保証します。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>詳しくは「表：clEnqueueBarrierWithWaitList」（<a class="xref" href="apbs37.html#clEnqueueBarrierWithWaitList" title="表B.101 表：clEnqueueBarrierWithWaitList">表B.101「表：clEnqueueBarrierWithWaitList」</a>）を参照ください。</p></div><pre xmlns="" class="prettyprint">int org.jocl.CL.clEnqueueBarrierWithWaitList(
+    cl_command_queue command_queue, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO85-1"></a>(1)
+    int num_events_in_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO85-2"></a>(2)
+    cl_event[] event_wait_list, //<a xmlns="http://www.w3.org/1999/xhtml" id="CO85-3"></a>(3)
+    cl_event event) //<a xmlns="http://www.w3.org/1999/xhtml" id="CO85-4"></a>(4)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO85-1">(1)</a> </p></td><td valign="top" align="left"><p>
+有効なコマンドキューを指定。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO85-2">(2)</a> </p></td><td valign="top" align="left"><p>
+event_wait_list で指定したイベントオブジェクトの数を指定します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO85-3">(3)</a> </p></td><td valign="top" align="left"><p>
+このコマンドが実行される前に完了されているイベントを指定
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO85-4">(4)</a> </p></td><td valign="top" align="left"><p>
+複製コマンドを識別するイベントオブジェクトが戻され、コマンド完了の確認やコマンド完了の待機に使える。
+</p></td></tr></table></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s22.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s24.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

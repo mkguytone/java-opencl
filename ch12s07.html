@@ -20,20 +20,20 @@ __kernel void image_to_complex(
         float4 pixel = read_imagef(
                                         src_image,
                                         sampler,
-                                        (int2)(coord.x,coord.y)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO127-1"></a>(1)
+                                        (int2)(coord.x,coord.y)); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO114-1"></a>(1)
 
-        dst_red[gidy*group_size + gidx].x = pixel.x; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO127-2"></a>(2)
-        dst_red[gidy*group_size + gidx].y = 0.0f; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO127-3"></a>(3)
+        dst_red[gidy*group_size + gidx].x = pixel.x; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO114-2"></a>(2)
+        dst_red[gidy*group_size + gidx].y = 0.0f; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO114-3"></a>(3)
         dst_green[gidy*group_size + gidx].x = pixel.y;
         dst_green[gidy*group_size + gidx].y =  0.0f;
         dst_blue[gidy*group_size + gidx].x = pixel.z;
         dst_blue[gidy*group_size + gidx].y = 0.0f;
 
-}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO127-1">(1)</a> </p></td><td valign="top" align="left"><p>
+}</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO114-1">(1)</a> </p></td><td valign="top" align="left"><p>
 clEnqueueReadImageで読み込んだ画像のピクセルデータをfloat4型として読み込みます。ここではRGBAの順序で読み込まれると想定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO127-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO114-2">(2)</a> </p></td><td valign="top" align="left"><p>
 実数部（ベクトルのx）に値を設定します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO127-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO114-3">(3)</a> </p></td><td valign="top" align="left"><p>
 虚数部（ベクトルのy）に値を設定します。FFTの初期値は通常0です。
 </p></td></tr></table></div><p>虚数部のパッキングを除けば、CPU実装例と先行する項目の2次元FFTのアルゴリズムを活用しています。</p><p><strong>FFTGPU2Dpng.java. </strong>
 </p><pre xmlns="" class="prettyprint">package com.book.jocl.fft;

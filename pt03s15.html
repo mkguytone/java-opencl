@@ -8,38 +8,38 @@
 int8 intvec2 = vload8(0, number);
 int8 intvec3 = -1;
 
-int any2 = any(intvec1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-1"></a>(1)
+int any2 = any(intvec1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO103-1"></a>(1)
 printf("any2 %d\n", any2);
-int any3 = any(intvec3); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-2"></a>(2)
-int all3 = all(intvec3); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-3"></a>(3)
+int any3 = any(intvec3); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO103-2"></a>(2)
+int all3 = all(intvec3); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO103-3"></a>(3)
 printf("any3 and all3 %d : %d\n", any3, all3);
 
 int4 intvec4 = (int4)(1,-1,1,-1);
 int4 intvec5 = (int4)(1,0,1,-1);
 int4 intvec6 = 0;
 
-int any4 = any(intvec4); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-4"></a>(4)
-int all4 = all(intvec4); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-5"></a>(5)
+int any4 = any(intvec4); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO103-4"></a>(4)
+int all4 = all(intvec4); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO103-5"></a>(5)
 printf("any4 and all4 %d : %d\n", any4, all4);
 
 intvec6 = intvec4 == intvec5;
 printf("intvec6 = %v4d\n",intvec6);
-int any5 = any(intvec6); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-6"></a>(6)
-int all5 = all(intvec6); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO116-7"></a>(7)
+int any5 = any(intvec6); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO103-6"></a>(6)
+int all5 = all(intvec6); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO103-7"></a>(7)
 printf("any5 and all5 %d : %d\n", any5, all5);</pre><p>
-</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-1">(1)</a> </p></td><td valign="top" align="left"><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO103-1">(1)</a> </p></td><td valign="top" align="left"><p>
 符号つきの整数の最上位ビットは負の整数だが、全て正のため0を返します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO103-2">(2)</a> </p></td><td valign="top" align="left"><p>
 `-1`の要素が一つでもあるため、1を返します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO103-3">(3)</a> </p></td><td valign="top" align="left"><p>
 全ての要素が`-1`のため、1を返します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-4">(4)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO103-4">(4)</a> </p></td><td valign="top" align="left"><p>
 `-1`の要素が一つでもあるため、1を返します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-5">(5)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO103-5">(5)</a> </p></td><td valign="top" align="left"><p>
 全ての要素が`-1`でないため、0を返します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-6">(6)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO103-6">(6)</a> </p></td><td valign="top" align="left"><p>
 `-1`の要素が一つでもあるため、1を返します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO116-7">(7)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO103-7">(7)</a> </p></td><td valign="top" align="left"><p>
 全ての要素が`-1`でないため、0を返します。
 </p></td></tr></table></div><p><strong>出力. </strong>
 </p><pre xmlns="" class="prettyprint">intvec1 = 0,1,2,3,4,5,6,7
@@ -58,9 +58,9 @@ printf("word match all6: %d\n", all6);</pre><p>無論、次のような等号の
 float huge_val = HUGE_VALF;
 float infinity = INFINITY;
 int is_nan = isnan(nan);
-int is_infinity1 = isinf(huge_val); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-1"></a>(1)
+int is_infinity1 = isinf(huge_val); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO104-1"></a>(1)
 int is_infinity2 = isinf(infinity);
-int is_normal1 = isnormal(nan); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO117-2"></a>(2)
+int is_normal1 = isnormal(nan); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO104-2"></a>(2)
 int is_normal2 = isnormal(-2.4f);
 int is_normal3 = isnormal(0.5f);
 int is_normal4 = isnormal(MAXFLOAT+1.0f);
@@ -68,9 +68,9 @@ printf("edge test: %d - %d - %d\n", is_nan, is_infinity1, is_infinity2);
 printf("normal test1: %d\n", is_normal1);
 printf("normal test2: %d\n", is_normal2);
 printf("normal test3: %d\n", is_normal3);
-printf("normal test4: %d\n", is_normal4);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-1">(1)</a> </p></td><td valign="top" align="left"><p>
+printf("normal test4: %d\n", is_normal4);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO104-1">(1)</a> </p></td><td valign="top" align="left"><p>
 無限大（正または負）かテストをします。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO117-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO104-2">(2)</a> </p></td><td valign="top" align="left"><p>
 正規値（0, 非正規化数, 無限大, NaN のいずれでもない）かチェック。nanのため0を返します。
 </p></td></tr></table></div><p><strong>出力. </strong>
 </p><pre xmlns="" class="prettyprint">edge test: 1 - 1 - 1
@@ -80,18 +80,18 @@ normal test3: 1
 normal test4: 1</pre><p>
 </p><pre xmlns="" class="prettyprint">int isordered (float x, float y)</pre><p>`isequal(x, x) &amp;&amp; isequal(y, y)`の計算をします。</p><pre xmlns="" class="prettyprint">int isunordered (float x, float y)</pre><p>￼
 xまたはyがNaNのときはゼロ以外、それ以外は0を返します。</p><pre xmlns="" class="prettyprint">int signbit (float)</pre><p>符号ビットをテストします。符号ビットが設定されているときはゼロ以外、それ以外のときは0を返します。</p><pre xmlns="" class="prettyprint">float4 floatvec1 = (float4)(3.0f, -4.0f, 5.0f, -6.0f);
-int4 sign = signbit(floatvec1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO118-1"></a>(1)
+int4 sign = signbit(floatvec1); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO105-1"></a>(1)
 printf("signbit test: %#v4d\n", sign);
 
-int ordered1 = isordered(floatvec1.x, floatvec1.z); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO118-2"></a>(2)
+int ordered1 = isordered(floatvec1.x, floatvec1.z); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO105-2"></a>(2)
 printf("isordered test: %d\n", ordered1);
 
-int ordered2 = isunordered(floatvec1.x, floatvec1.z); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO118-3"></a>(3)
-printf("isunordered test: %d\n", ordered2);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO118-1">(1)</a> </p></td><td valign="top" align="left"><p>
+int ordered2 = isunordered(floatvec1.x, floatvec1.z); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO105-3"></a>(3)
+printf("isunordered test: %d\n", ordered2);</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO105-1">(1)</a> </p></td><td valign="top" align="left"><p>
 符号を抽出します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO118-2">(2)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO105-2">(2)</a> </p></td><td valign="top" align="left"><p>
 `isequal(x, x) &amp;&amp; isequal(y, y)`の計算結果を返します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO118-3">(3)</a> </p></td><td valign="top" align="left"><p>
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO105-3">(3)</a> </p></td><td valign="top" align="left"><p>
 NaNではないため、0を返します。
 </p></td></tr></table></div><pre xmlns="" class="prettyprint">signbit test: 0,-1,0,-1
 isordered test: 1
