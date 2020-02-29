@@ -1,70 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>11.6. 実装例（GPU）</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch11.html" title="第11章 高速フーリエ変換（Fast Fourier Transform）" /><link rel="prev" href="ch11s05.html" title="11.5. 実装例（CPU）" /><link rel="next" href="ch12.html" title="第12章 2次元高速フーリエ変換" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>11.6. バンクコンフリクトを緩和する実装例</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch11.html" title="第11章 ヒストグラム" /><link rel="prev" href="ch11s05.html" title="11.5. Stride型のアルゴリズム" /><link rel="next" href="ch11s07.html" title="11.7. アトミック型のアルゴリズム" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch11s05.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch12.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_実装例_gpu"></a>11.6. 実装例（GPU）</h2></div></div></div><p>GPGPU実装は、CPU実装と基本的には同じものです。異なる点はデータ並列化が可能なコードは、カーネル関数内に移されます。</p><p>ここで使うカーネル関数は3つあります。まず一つ目が、fft_init関数です。</p><pre xmlns="" class="prettyprint">__kernel void fft_init(
-                __global float2* data,
-                __global float2* F,
-                int N)</pre><p>この関数は、Radix-2 FFTの導入部分となり、ストライドが1の時に使います。つまりCPU実装でいう以下の行に該当します。</p><pre xmlns="" class="prettyprint">F[offset] = data[offset] + data[offset+N2];
-F[offset+1] = data[offset+1] + data[offset+N2+1];
-F[offset+N2] = data[offset] - data[offset+N2];
-F[offset+N2+1] = data[offset+1] - data[offset+N2+1];</pre><p>この計算では三角関数が不要となります。またdata変数は生データですが、以後の計算では、F変数を用います。</p><p>Radix-2 FFTのGPU実装の該当するFFTカーネル関数は以下のようになります。CPU実装例と比べると、ほとんど同じコードであることがわかると思います。</p><pre xmlns="" class="prettyprint">float2 in0, in1;
-
-in0 = F[index];
-in1 = F[index+stride];
-
-float angle = -2*M_PI_F*(index)/N;
-
-float c,s;
-float2 v;
-float2 tmp0;
-
-c = native_cos(angle);
-s = sign*native_sin(angle);
-
-v.x = c * (in1.x) - s * in1.y;
-v.y = c * (in1.y) + s * in1.x;
-
-tmp0 = in0;
-
-in0 = tmp0 + v;
-in1 = tmp0 - v;
-
-F[index] = in0;
-F[index + stride] = in1;</pre><p>Javaの標準パッケージでは、ベクトル型を使用できませんが、OpenCLではfloat2型を使うことにより、xに実数部、yに虚数部とすることで、コード行数を少なくとも半分程度に抑制できます。</p><p>FFTのメインのアルゴリズムは以下のfftカーネル関数を使います。</p><pre xmlns="" class="prettyprint">__kernel void fft(
-                __global float2* F,
-                int N,
-                int sign)</pre><p>この関数はCooley-Tukeyアルゴリズムを実装しますが、該当するCPU実装は以下のようになります。</p><pre xmlns="" class="prettyprint">forward(N2,offset,data,F,sign,step);
-forward(N2,offset+N2,data,F,sign,step);
-
-for(int i = 0; i &lt; N2; i+=2) {
-    c = Math.cos(i*_PI/N2); // (_PI * 2 * k)
-    s = sign*Math.sin(i*_PI/N2); // (_PI * 2 * k)
-
-    real = F[i+N2+offset]*c + F[i+N2+1+offset]*s;
-    imaginary = F[i+N2+1+offset]*c - F[i+N2+offset]*s;
-
-    F[i+N2+offset] = F[i+offset] - real;
-    F[i+N2+1+offset] = F[i+1+offset] - imaginary;
-    F[i+offset] += real;
-    F[i+1+offset] += imaginary;
-
-}</pre><p>ここでは、forward関数は、fft関数に該当し、最初の2行で再帰処理をしています。</p><p>GPU実装については、再帰処理ができないため、再帰部分はOpenCLホストAPIを使い、残りは記述をカーネル関数に移します。構成としては以下のようになります。</p><pre xmlns="" class="prettyprint">int fftSize = 1;
-int ns = log2(N);
-int stages = 0;
-int[] fftSizePtr = new int[1];
-for(int i = 0; i &lt; ns; i++) {
-    fftSize &lt;&lt;= 1;
-    fftSizePtr[0] = fftSize;
-
-    if(fftSize !=2) {
-        // fftカーネル関数
-    } else {
-        // fft_initカーネル関数
-    }
-}</pre><p>fft_initは、forループ内の反復の一番初めだけ実行され、残りはfftカーネル関数が代わりに実行されます。</p><p><strong>FFTGPU1D.java. </strong>
-</p><pre xmlns="" class="prettyprint">package com.book.jocl.fft;
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch11s05.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch11s07.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_バンクコンフリクトを緩和する実装例"></a>11.6. バンクコンフリクトを緩和する実装例</h2></div></div></div><div class="warning" style="margin-left: 0; margin-right: 10%;"><h3 class="title">警告</h3><p>この項目で紹介したソースコードは、バンクコンフリクトの最悪のシナリオのガードにはなりますが、パフォーマンス的には必ずしも早くなることを意味しません。また4KBでアラインしたデータサイズが崩れるため、メモリスピルが発生する可能性もありますので、注意しながら確認してみてください。</p></div><p>前の項目で紹介した実装例に対してバンクコンフリクトの緩和ができるように、調整したソースコードです。</p><p>バンクが衝突しないようにする対策で一番シンプルなものは、ホストAPIのメモリ空間割り当て時のサイズを一要素増やすことです。</p><pre xmlns="" class="prettyprint">clSetKernelArg(kernel, 1, Sizeof.cl_uint * (LOCAL_SIZE+1) * BIN_SIZE, null);</pre><p>これに対応してカーネル関数にも以下のような変更を加えます。</p><pre xmlns="" class="prettyprint">for(int i = 0; i &lt; BIN_SIZE/4; ++i)
+    input[(local_size+1) * i + lid] = 0;
+//
+// Omit the intermediate steps
+//
+shared_local_memory[value.s0 * (local_size+1) + stride + bank_number]++</pre><p>これによりバンクのアクセスが毎回一個分だけづれることになり、衝突を幾分か緩和する可能性があります。</p><p><strong>HistogramBankStride4kbslmAdjusted.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.histogram;
 
 import static org.jocl.CL.*;
 
@@ -73,6 +18,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Paths;
+import java.util.Random;
 import java.util.Scanner;
 
 import org.jocl.CL;
@@ -87,51 +33,20 @@ import org.jocl.cl_mem;
 import org.jocl.cl_platform_id;
 import org.jocl.cl_program;
 
-public class FFTGPU1D {
+public class HistogramBankStride4kbslmAdjusted {
 
-        private static final String KERNEL_PATH = "fft1d.cl";
-        private static final String KERNEL_INIT = "fft_init";
-        private static final String KERNEL_BIT_REVERSAL = "bit_reversal";
-        private static final String KERNEL_FFT = "fft";
-        private static final String KERNEL_FFT_INVERSE = "fft_inverse";
+        private static final String KERNEL_PATH = "histogram.cl";
+        private static final String KERNEL_FUNC = "histogram";
+        private static final int BIN_SIZE = 256;
+        private static final int LOCAL_SIZE = 4;
+        private static final int WG_SIZE = 16;
+        private static final int DATA_SIZE = BIN_SIZE * LOCAL_SIZE * WG_SIZE;
+        private static final int[] data = new int[DATA_SIZE];
 
     private static cl_context context;
     private static cl_command_queue queue;
     private static cl_program program;
-    private static cl_kernel kernel_init;
-    private static cl_kernel kernel_bit_reversal;
-    private static cl_kernel kernel_fft;
-    private static cl_kernel kernel_fft_inverse;
-
-        private static final int DATA_SIZE = 256;
-        private static final float[] data = new float[DATA_SIZE&lt;&lt;1];
-        private static final float[] processed_data = new float[DATA_SIZE &lt;&lt; 1];
-
-        private static long[] global_work_size = new long[]{DATA_SIZE &gt;&gt;&gt; 1,1,1};
-        private static long[] local_work_size = new long[]{1,1,1};
-        private static long[] global_work_size_full = new long[]{DATA_SIZE,1,1};
-
-
-        private static int log2(int b) {
-                int result = 0;
-                if((b &amp; 0xffff0000) != 0) {
-                        b &gt;&gt;&gt;= 16;
-                        result = 16;
-                }
-                if(b &gt;= 256) {
-                        b &gt;&gt;&gt;= 8;
-                        result += 8;
-                }
-                if(b &gt;= 16) {
-                        b &gt;&gt;&gt;= 4;
-                        result += 4;
-                }
-                if(b &gt;= 4) {
-                        b &gt;&gt;&gt;= 2;
-                        result += 2;
-                }
-                return result + (b &gt;&gt;&gt; 1);
-        }
+    private static cl_kernel kernel;
 
         public static void main(String[] args) throws Exception {
 
@@ -151,7 +66,7 @@ public class FFTGPU1D {
                 queue = clCreateCommandQueue(context, device[0], 0, null);
 
                 StringBuffer sb  = new StringBuffer();
-                URL resource = FFTGPU1D.class.getResource(KERNEL_PATH) ;
+                URL resource = HistogramBankStride4kbslm.class.getResource(KERNEL_PATH) ;
                 String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
                 Scanner sc = new Scanner(new File(path));
                 while(sc.hasNext()) {
@@ -159,308 +74,135 @@ public class FFTGPU1D {
                 }
                 sc.close();
                 program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
-                String option = "-Werror";
+                String option = "-Werror -DBIN_SIZE=256";
                 clBuildProgram(program, 0, null, option, null, null);
 
                 cl_mem data_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-                                Sizeof.cl_float2 * DATA_SIZE, Pointer.to(data), null);
+                                Sizeof.cl_uint4 * DATA_SIZE, Pointer.to(data), null);
 
-                cl_mem processed_mem = clCreateBuffer(context, CL_MEM_USE_HOST_PTR,
-                                Sizeof.cl_float2 * DATA_SIZE, Pointer.to(processed_data), null);
+                cl_mem subHistogram = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR,
+                                Sizeof.cl_uint*BIN_SIZE*WG_SIZE, null, null);
 
-                kernel_init = clCreateKernel(program, KERNEL_INIT, null);
-                kernel_bit_reversal = clCreateKernel(program, KERNEL_BIT_REVERSAL, null);
-                kernel_fft = clCreateKernel(program, KERNEL_FFT, null);
-                kernel_fft_inverse = clCreateKernel(program, KERNEL_FFT_INVERSE, null);
+                kernel = clCreateKernel(program, KERNEL_FUNC, null);
 
                 generateSample();
 
-                int N = DATA_SIZE;
-                int fftSize = 1;
-                int ns = log2(N);
-                int stages = 0;
-                int[] fftSizePtr = new int[1];
+                clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                clSetKernelArg(kernel, 1, Sizeof.cl_uint * (LOCAL_SIZE+1) * BIN_SIZE, null);
+                clSetKernelArg(kernel, 2, Sizeof.cl_mem, Pointer.to(subHistogram));
 
-                int[] Ni = new int[1];
-                Ni[0] = N;
-
-                clSetKernelArg(kernel_bit_reversal, 0, Sizeof.cl_mem, Pointer.to(data_mem));
-                clSetKernelArg(kernel_bit_reversal, 1, Sizeof.cl_uint, Pointer.to(Ni));
-
+                long[] global_work_size = new long[]{WG_SIZE * LOCAL_SIZE,1,1};
+                long[] local_work_size = new long[]{LOCAL_SIZE,1,1};
                 clEnqueueNDRangeKernel(queue,
-                                kernel_bit_reversal, 1, null,
-                                global_work_size_full,
+                                kernel, 1,
+                                null,
+                                global_work_size,
                                 local_work_size,
-                                0, null, null);
-
-                int[] signPtr = new int[1];
-                signPtr[0] = 1;
-
-                for(int i = 0; i &lt; ns; i++) {
-                        fftSize &lt;&lt;= 1;
-                        fftSizePtr[0] = fftSize;
-
-                        if(fftSize !=2) {
-
-                                clSetKernelArg(kernel_fft, 0, Sizeof.cl_mem, Pointer.to(processed_mem));
-                                clSetKernelArg(kernel_fft, 1, Sizeof.cl_uint, Pointer.to(fftSizePtr));
-                                clSetKernelArg(kernel_fft, 2, Sizeof.cl_int, Pointer.to(signPtr));
-
-                                clEnqueueNDRangeKernel(queue,
-                                                kernel_fft, 1, null,
-                                                global_work_size,
-                                                local_work_size,
-                                                0, null, null);
-                        } else {
-                                clSetKernelArg(kernel_init, 0, Sizeof.cl_mem, Pointer.to(data_mem));
-                                clSetKernelArg(kernel_init, 1, Sizeof.cl_mem, Pointer.to(processed_mem));
-                                clSetKernelArg(kernel_init, 2, Sizeof.cl_uint, Pointer.to(fftSizePtr));
-
-                                clEnqueueNDRangeKernel(queue,
-                                                kernel_init, 1, null,
-                                                global_work_size,
-                                                local_work_size,
-                                                0, null, null);
-                        }
-
-                        stages++;
-                }
-
-                clSetKernelArg(kernel_bit_reversal, 0, Sizeof.cl_mem, Pointer.to(processed_mem));
-                clSetKernelArg(kernel_bit_reversal, 1, Sizeof.cl_uint, Pointer.to(Ni));
-
-                clEnqueueNDRangeKernel(queue,
-                                kernel_bit_reversal, 1, null,
-                                global_work_size_full,
-                                local_work_size,
-                                0, null, null);
-
-                signPtr[0] = -1;
-                fftSize = 1;
-                stages = 0;
-
-                for(int i = 0; i &lt; ns; i++) {
-                        fftSize &lt;&lt;= 1;
-                        fftSizePtr[0] = fftSize;
-
-                        clSetKernelArg(kernel_fft, 0, Sizeof.cl_mem, Pointer.to(processed_mem));
-                        clSetKernelArg(kernel_fft, 1, Sizeof.cl_uint, Pointer.to(fftSizePtr));
-                        clSetKernelArg(kernel_fft, 2, Sizeof.cl_int, Pointer.to(signPtr));
-
-                        clEnqueueNDRangeKernel(queue,
-                                        kernel_fft, 1, null,
-                                        global_work_size,
-                                        local_work_size,
-                                        0, null, null);
-
-                        stages++;
-                }
-
-                clSetKernelArg(kernel_fft_inverse, 0, Sizeof.cl_uint, Pointer.to(Ni));
-                clSetKernelArg(kernel_fft_inverse, 1, Sizeof.cl_mem, Pointer.to(processed_mem));
-
-                long[] global_work_size_scale = new long[]{DATA_SIZE,1,1};
-                long[] local_work_size_scale = new long[]{1,1,1};
-                clEnqueueNDRangeKernel(queue,
-                                kernel_fft_inverse, 1, null,
-                                global_work_size_scale,
-                                local_work_size_scale,
                                 0, null, null);
 
                 ByteBuffer output = clEnqueueMapBuffer(queue,
-                                processed_mem,
+                                subHistogram,
                                 CL_TRUE,
                                 CL_MAP_WRITE,
                                 0,
-                                Sizeof.cl_float2*DATA_SIZE,
+                                Sizeof.cl_uint*BIN_SIZE*WG_SIZE,
                                 0,
                                 null,
                                 null,
                                 null);
 
-                clEnqueueUnmapMemObject(queue, processed_mem, output, 0, null, null);
+                clEnqueueUnmapMemObject(queue, subHistogram, output, 0, null, null);
                 clFinish(queue);
 
+                int[] outputHistogram = new int[BIN_SIZE*WG_SIZE];
+                int[] result = new int[BIN_SIZE];
                 output.order(ByteOrder.LITTLE_ENDIAN);
-
-                for(int i = 0; i &lt; DATA_SIZE*2; i++) {
-                        System.out.println(output.getFloat());
+                int i,j;
+                for(i = 0; i &lt; WG_SIZE; ++i) {
+                        for(j = 0; j &lt; BIN_SIZE; ++j) {
+                                outputHistogram[j*WG_SIZE+i] = output.getInt();
+                        }
+                }
+                for(i = 0; i &lt; WG_SIZE; ++i) {
+                        for(j = 0; j &lt; BIN_SIZE; ++j) {
+                                result[j] += outputHistogram[j*WG_SIZE+i];
+                        }
+                }
+                for(i = 0; i &lt; BIN_SIZE; ++i) {
+                        System.out.printf("TOTAL[%d]: %d\n", i, result[i]);
                 }
 
                 clReleaseDevice(device[0]);
                 clReleaseContext(context);
                 clReleaseCommandQueue(queue);
-                clReleaseKernel(kernel_fft);
-                clReleaseKernel(kernel_init);
+                clReleaseKernel(kernel);
                 clReleaseProgram(program);
         }
 
         private static void generateSample() {
-                for(int i = 0; i &lt; DATA_SIZE*2; i+=2) {
-                        data[i] = i/2;
-                        data[i+1] = 0.0f;
+                //Random rnd = new Random();
+                for(int i = 0; i &lt; DATA_SIZE; i++) {
+                        //data[i] = (byte) (rnd.nextInt(256));
+                        //data[i] = (i%32);
+                        data[i] = 254;
                 }
+
+        }
+
+}</pre><p>
+</p><p><strong>histogram.cl. </strong>
+</p><pre xmlns="" class="prettyprint">#define BIN_SIZE 256
+
+//4KB = 4 threads
+//16 WG
+
+__kernel void histogram(
+                __global uint4* data,
+        __local uint* shared_local_memory,
+        __global uint* buckets) {
+
+        size_t lid = get_local_id(0);
+
+        size_t group_id = get_group_id(0);
+        size_t local_size = get_local_size(0);
+
+        int offset = lid % 2; // 0,1
+        int stride = 2 * offset; // 0,2
+        int bank_number = lid &gt;&gt; 1; // 0,1
+
+        __local uchar4* input = (__local uchar4*) shared_local_memory;
+
+        for(int i = 0; i &lt; BIN_SIZE/4; ++i)
+                input[(local_size+1) * i + lid] = 0;
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for(int i = 0; i &lt; BIN_SIZE /4; ++i) {
+
+             uint4 value = data[
+                        group_id * local_size * (BIN_SIZE / 4) + i *
+                        local_size + lid];
+             // (0...15) * 4 * 256 / 4 + (0..63) * 4 + lid
+
+             shared_local_memory[value.s0 * (local_size+1) + stride + bank_number]++; // value.s0, s1, s2, s3 is random, may update same position
+             shared_local_memory[value.s1 * (local_size+1) + stride + bank_number]++;
+             shared_local_memory[value.s2 * (local_size+1) + stride + bank_number]++;
+             shared_local_memory[value.s3 * (local_size+1) + stride + bank_number]++;
+
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        if(lid == 0) { // each work-group only has 1 work-item executing this code block
+             for(size_t i = 0; i &lt; BIN_SIZE; i++) {
+               int result = 0;
+               for(size_t j = 0; j &lt; local_size; j++) {
+                 result += shared_local_memory[i * (local_size+1) + j];
+                 // [0..255]*4 + 0...3 =&gt; min 0, max 1023
+               }
+               buckets[group_id * BIN_SIZE  + i] = result; // 0..15 * 256 + 0...255
+             }
         }
 }</pre><p>
-</p><p><strong>fft1d.cl. </strong>
-</p><pre xmlns="" class="prettyprint">inline int reverseBit(int x, int stage) {
-        int b = 0;
-        int bits = stage;
-        while (bits != 0){
-                  b &lt;&lt;=1;
-                  b |=( x &amp;1 );
-                  x &gt;&gt;=1;
-                  bits&gt;&gt;=1;
-        }
-        return b;
-}
-
-__kernel void bit_reversal(__global float2* data, uint N) {
-        size_t gid = get_global_id(0);
-        uint rev = reverseBit(gid, N-1);
-        float2 in1;
-        float2 in2;
-        if(gid &lt; rev) {
-                in1 = data[gid];
-                in2 = data[rev];
-                printf("pair: %d - %d, N = %d\n", gid, rev, N);
-                data[rev] = in1;
-                data[gid] = in2;
-        }
-}
-
-__kernel void fft_init(
-                __global float2* data,
-                __global float2* F,
-                int N)
-{
-        int gid = get_global_id(0);
-        int stride = N/2;
-        float floor_adjust = gid/stride;
-        int index = ceil(floor_adjust)*stride + (gid);
-
-        float2 in0, in1;
-
-        in0 = data[index];
-        in1 = data[index+stride];
-
-        float2 v0;
-        v0 = in0;
-        in0 = v0 + in1;
-        in1 = v0 - in1;
-
-        F[index] = in0;
-        F[index + stride] = in1;
-
-        printf("gid=%d, pair: %d - %d, N = %d, s = %d, in0:in1 = %f:%f\n", gid, index, index+stride, N, stride, F[index].x, F[index+stride].x);
-
-}
-
-
-__kernel void fft(
-                __global float2* F,
-                int N,
-                int sign)
-{
-        int gid = get_global_id(0);
-        int stride = N/2;
-        float floor_adjust = gid/stride;
-        int index = ceil(floor_adjust)*stride + (gid);
-
-        float2 in0, in1;
-
-        in0 = F[index];
-        in1 = F[index+stride];
-
-        float angle = -2*M_PI_F*(index)/N;
-
-        float c,s;
-        float2 v;
-        float2 tmp0;
-
-        c = native_cos(angle);
-        s = sign*native_sin(angle);
-
-        v.x = c * (in1.x) - s * in1.y;
-        v.y = c * (in1.y) + s * in1.x;
-
-        tmp0 = in0;
-
-        in0 = tmp0 + v;
-        in1 = tmp0 - v;
-
-        F[index] = in0;
-        F[index + stride] = in1;
-
-        printf("gid=%d, pair: %d - %d, N = %d, s = %d, sign = %d c:s = %f:%f\n in0:in1 = %f:%f\n", gid, index, index+stride, N, stride, sign, c, s, F[index].x, F[index+stride].x);
-
-}
-
-__kernel void fft_inverse(
-    int N,
-    __global float2* F)
-{
-        size_t gid = get_global_id(0);
-        F[gid] /= N;
-}</pre><p>
-</p><p>下記はFFTカーネル関数が出力したFFTの処理情報となります。処理点の数はN、処理点間の距離はs、pairが実行中の2つの処理点（in0、in1）、gidがグローバルIDとなっています。cはcos関数、sはsin関数の値です。</p><pre xmlns="" class="prettyprint">gid=2, pair: 4 - 5, N = 2, s = 1, in0:in1 = 6.000000:-4.000000
-gid=0, pair: 0 - 1, N = 2, s = 1, in0:in1 = 4.000000:-4.000000
-gid=3, pair: 6 - 7, N = 2, s = 1, in0:in1 = 10.000000:-4.000000
-gid=1, pair: 2 - 3, N = 2, s = 1, in0:in1 = 8.000000:-4.000000
-gid=2, pair: 4 - 6, N = 4, s = 2, sign = 1 c:s = 1.000000:-0.000000
- in0:in1 = 16.000000:-4.000000
-gid=0, pair: 0 - 2, N = 4, s = 2, sign = 1 c:s = 1.000000:-0.000000
- in0:in1 = 12.000000:-4.000000
-gid=3, pair: 5 - 7, N = 4, s = 2, sign = 1 c:s = -0.000000:-1.000000
- in0:in1 = -3.999999:-4.000001
-gid=1, pair: 1 - 3, N = 4, s = 2, sign = 1 c:s = -0.000000:-1.000000
- in0:in1 = -4.000000:-4.000000
-gid=2, pair: 2 - 6, N = 8, s = 4, sign = 1 c:s = -0.000000:-1.000000
- in0:in1 = -3.999999:-4.000001
-gid=0, pair: 0 - 4, N = 8, s = 4, sign = 1 c:s = 1.000000:-0.000000
- in0:in1 = 28.000000:-4.000000
-gid=3, pair: 3 - 7, N = 8, s = 4, sign = 1 c:s = -0.707110:-0.707110
- in0:in1 = -3.999999:-4.000001
-gid=1, pair: 1 - 5, N = 8, s = 4, sign = 1 c:s = 0.707110:-0.707110
- in0:in1 = -3.999999:-4.000001</pre><p>下記は上に同じく処理情報ですが、今度は逆（inverse）FFTの情報を採集しています。sign変数が「-1」となっていることに注目ください。</p><pre xmlns="" class="prettyprint">gid=0, pair: 0 - 1, N = 2, s = 1, sign = -1 c:s = 1.000000:0.000000
- in0:in1 = 24.000000:32.000000
-gid=2, pair: 4 - 5, N = 2, s = 1, sign = -1 c:s = 1.000000:0.000000
- in0:in1 = -8.000000:0.000001
-gid=3, pair: 6 - 7, N = 2, s = 1, sign = -1 c:s = 1.000000:0.000000
- in0:in1 = -8.000000:0.000002
-gid=1, pair: 2 - 3, N = 2, s = 1, sign = -1 c:s = 1.000000:0.000000
- in0:in1 = -8.000000:0.000002
-gid=2, pair: 4 - 6, N = 4, s = 2, sign = -1 c:s = 1.000000:0.000000
- in0:in1 = -15.999999:-0.000001
-gid=0, pair: 0 - 2, N = 4, s = 2, sign = -1 c:s = 1.000000:0.000000
- in0:in1 = 16.000000:32.000000
-gid=3, pair: 5 - 7, N = 4, s = 2, sign = -1 c:s = -0.000000:1.000000
- in0:in1 = -11.313758:11.313760
-gid=1, pair: 1 - 3, N = 4, s = 2, sign = -1 c:s = -0.000000:1.000000
- in0:in1 = 24.000000:40.000000
-gid=2, pair: 2 - 6, N = 8, s = 4, sign = -1 c:s = -0.000000:1.000000
- in0:in1 = 16.000000:48.000000
-gid=0, pair: 0 - 4, N = 8, s = 4, sign = -1 c:s = 1.000000:0.000000
- in0:in1 = 0.000001:32.000000
-gid=3, pair: 3 - 7, N = 8, s = 4, sign = -1 c:s = -0.707110:0.707110
- in0:in1 = 23.999861:56.000137
-gid=1, pair: 1 - 5, N = 8, s = 4, sign = -1 c:s = 0.707110:0.707110
- in0:in1 = 7.999863:40.000137</pre><p>プログラムが処理を終えた結果は以下のようになります。</p><pre xmlns="" class="prettyprint">1.1920929E-7
--3.5762787E-7
-0.99998283
--2.526322E-7
-2.0
--5.9604645E-8
-2.9999826
--4.7709625E-7
-4.0
-2.3841858E-7
-5.000017
-1.9301845E-7
-6.0
-1.7881393E-7
-7.000017
--6.554011E-7</pre><p>元のデータがほとんど完全な形で復元に成功しています。</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch11s05.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch11.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch12.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch11s05.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch11.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch11s07.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

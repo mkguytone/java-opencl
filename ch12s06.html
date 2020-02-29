@@ -1,83 +1,466 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>12.6. GPGPUへの修正点（メモリストライド・Bank Conflict対策）</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch12.html" title="第12章 2次元高速フーリエ変換" /><link rel="prev" href="ch12s05.html" title="12.5. 2次元カーネルの実装" /><link rel="next" href="ch12s07.html" title="12.7. FFT-2Dで画像処理" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>12.6. 実装例（GPU）</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch12.html" title="第12章 高速フーリエ変換（Fast Fourier Transform）" /><link rel="prev" href="ch12s05.html" title="12.5. 実装例（CPU）" /><link rel="next" href="ch13.html" title="第13章 2次元高速フーリエ変換" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch12s05.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch12s07.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_gpgpuへの修正点_メモリストライド_bank_conflict対策"></a>12.6. GPGPUへの修正点（メモリストライド・Bank Conflict対策）</h2></div></div></div><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>メモリアクセスパターンについての詳細は「図：行列乗算のアクセスパターン」（<a class="xref" href="ch02s20.html#MatrixAccessPattern" title="図2.19 図：行列乗算のアクセスパターン（下部は転置後のパターン）">図2.19「図：行列乗算のアクセスパターン（下部は転置後のパターン）」</a>）を参照ください。</p></div><p>FFTの処理を行う際には、並列化と共にメモリアクセスのパターンを正しく設計しないと遅延の原因となります。</p><p>「図：2次元FFTの手順」（<a class="xref" href="ch12s02.html#fft-2d-procedure" title="図12.2 図：2次元FFTの手順">図12.2「図：2次元FFTの手順」</a>）では、列スキャンを行いましたが、このままではメモリストライド（ローカルメモリの場合はバンクコンフリクト）が発生します。そのためカラムにアクセスするのではなく、行列の転置をおこない行としてアクセスを行います。</p><p>具体的には以下のような手順が必要となります。</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
-1次元高速フーリエ変換を使い全行を変換
-</li><li class="listitem">
-変換配列を転置
-</li><li class="listitem">
-1次元高速フーリエ変換を使い全行を変換
-</li><li class="listitem">
-変換配列を転置
-</li></ol></div><p>転置については、以下のtransposeカーネル関数を使います。</p><pre xmlns="" class="prettyprint">__kernel void transpose(
-                         __global float2* input,
-                         __global float2* output,
-                         size_t width,
-                         size_t height)
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch12s05.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch13.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_実装例_gpu"></a>12.6. 実装例（GPU）</h2></div></div></div><p>GPGPU実装は、CPU実装と基本的には同じものです。異なる点はデータ並列化が可能なコードは、カーネル関数内に移されます。</p><p>ここで使うカーネル関数は3つあります。まず一つ目が、fft_init関数です。</p><pre xmlns="" class="prettyprint">__kernel void fft_init(
+                __global float2* data,
+                __global float2* F,
+                int N)</pre><p>この関数は、Radix-2 FFTの導入部分となり、ストライドが1の時に使います。つまりCPU実装でいう以下の行に該当します。</p><pre xmlns="" class="prettyprint">F[offset] = data[offset] + data[offset+N2];
+F[offset+1] = data[offset+1] + data[offset+N2+1];
+F[offset+N2] = data[offset] - data[offset+N2];
+F[offset+N2+1] = data[offset+1] - data[offset+N2+1];</pre><p>この計算では三角関数が不要となります。またdata変数は生データですが、以後の計算では、F変数を用います。</p><p>Radix-2 FFTのGPU実装の該当するFFTカーネル関数は以下のようになります。CPU実装例と比べると、ほとんど同じコードであることがわかると思います。</p><pre xmlns="" class="prettyprint">float2 in0, in1;
+
+in0 = F[index];
+in1 = F[index+stride];
+
+float angle = -2*M_PI_F*(index)/N;
+
+float c,s;
+float2 v;
+float2 tmp0;
+
+c = native_cos(angle);
+s = sign*native_sin(angle);
+
+v.x = c * (in1.x) - s * in1.y;
+v.y = c * (in1.y) + s * in1.x;
+
+tmp0 = in0;
+
+in0 = tmp0 + v;
+in1 = tmp0 - v;
+
+F[index] = in0;
+F[index + stride] = in1;</pre><p>Javaの標準パッケージでは、ベクトル型を使用できませんが、OpenCLではfloat2型を使うことにより、xに実数部、yに虚数部とすることで、コード行数を少なくとも半分程度に抑制できます。</p><p>FFTのメインのアルゴリズムは以下のfftカーネル関数を使います。</p><pre xmlns="" class="prettyprint">__kernel void fft(
+                __global float2* F,
+                int N,
+                int sign)</pre><p>この関数はCooley-Tukeyアルゴリズムを実装しますが、該当するCPU実装は以下のようになります。</p><pre xmlns="" class="prettyprint">forward(N2,offset,data,F,sign,step);
+forward(N2,offset+N2,data,F,sign,step);
+
+for(int i = 0; i &lt; N2; i+=2) {
+    c = Math.cos(i*_PI/N2); // (_PI * 2 * k)
+    s = sign*Math.sin(i*_PI/N2); // (_PI * 2 * k)
+
+    real = F[i+N2+offset]*c + F[i+N2+1+offset]*s;
+    imaginary = F[i+N2+1+offset]*c - F[i+N2+offset]*s;
+
+    F[i+N2+offset] = F[i+offset] - real;
+    F[i+N2+1+offset] = F[i+1+offset] - imaginary;
+    F[i+offset] += real;
+    F[i+1+offset] += imaginary;
+
+}</pre><p>ここでは、forward関数は、fft関数に該当し、最初の2行で再帰処理をしています。</p><p>GPU実装については、再帰処理ができないため、再帰部分はOpenCLホストAPIを使い、残りは記述をカーネル関数に移します。構成としては以下のようになります。</p><pre xmlns="" class="prettyprint">int fftSize = 1;
+int ns = log2(N);
+int stages = 0;
+int[] fftSizePtr = new int[1];
+for(int i = 0; i &lt; ns; i++) {
+    fftSize &lt;&lt;= 1;
+    fftSizePtr[0] = fftSize;
+
+    if(fftSize !=2) {
+        // fftカーネル関数
+    } else {
+        // fft_initカーネル関数
+    }
+}</pre><p>fft_initは、forループ内の反復の一番初めだけ実行され、残りはfftカーネル関数が代わりに実行されます。</p><p><strong>FFTGPU1D.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.fft;
+
+import static org.jocl.CL.*;
+
+import java.io.File;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.file.Paths;
+import java.util.Scanner;
+
+import org.jocl.CL;
+import org.jocl.Pointer;
+import org.jocl.Sizeof;
+import org.jocl.cl_command_queue;
+import org.jocl.cl_context;
+import org.jocl.cl_context_properties;
+import org.jocl.cl_device_id;
+import org.jocl.cl_kernel;
+import org.jocl.cl_mem;
+import org.jocl.cl_platform_id;
+import org.jocl.cl_program;
+
+public class FFTGPU1D {
+
+        private static final String KERNEL_PATH = "fft1d.cl";
+        private static final String KERNEL_INIT = "fft_init";
+        private static final String KERNEL_BIT_REVERSAL = "bit_reversal";
+        private static final String KERNEL_FFT = "fft";
+        private static final String KERNEL_FFT_INVERSE = "fft_inverse";
+
+    private static cl_context context;
+    private static cl_command_queue queue;
+    private static cl_program program;
+    private static cl_kernel kernel_init;
+    private static cl_kernel kernel_bit_reversal;
+    private static cl_kernel kernel_fft;
+    private static cl_kernel kernel_fft_inverse;
+
+        private static final int DATA_SIZE = 256;
+        private static final float[] data = new float[DATA_SIZE&lt;&lt;1];
+        private static final float[] processed_data = new float[DATA_SIZE &lt;&lt; 1];
+
+        private static long[] global_work_size = new long[]{DATA_SIZE &gt;&gt;&gt; 1,1,1};
+        private static long[] local_work_size = new long[]{1,1,1};
+        private static long[] global_work_size_full = new long[]{DATA_SIZE,1,1};
+
+
+        private static int log2(int b) {
+                int result = 0;
+                if((b &amp; 0xffff0000) != 0) {
+                        b &gt;&gt;&gt;= 16;
+                        result = 16;
+                }
+                if(b &gt;= 256) {
+                        b &gt;&gt;&gt;= 8;
+                        result += 8;
+                }
+                if(b &gt;= 16) {
+                        b &gt;&gt;&gt;= 4;
+                        result += 4;
+                }
+                if(b &gt;= 4) {
+                        b &gt;&gt;&gt;= 2;
+                        result += 2;
+                }
+                return result + (b &gt;&gt;&gt; 1);
+        }
+
+        public static void main(String[] args) throws Exception {
+
+                CL.setExceptionsEnabled(true);
+
+                cl_platform_id[] platform = new cl_platform_id[1];
+                cl_device_id[] device = new cl_device_id[1];
+                int[] num_devices = new int[1];
+
+                clGetPlatformIDs(1, platform, null);
+                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, num_devices);
+
+                cl_context_properties props = new cl_context_properties();
+                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
+                context = clCreateContext(props, 1, device, null, null, null);
+
+                queue = clCreateCommandQueue(context, device[0], 0, null);
+
+                StringBuffer sb  = new StringBuffer();
+                URL resource = FFTGPU1D.class.getResource(KERNEL_PATH) ;
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                Scanner sc = new Scanner(new File(path));
+                while(sc.hasNext()) {
+                        sb.append(sc.nextLine() + "\n");
+                }
+                sc.close();
+                program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
+                String option = "-Werror";
+                clBuildProgram(program, 0, null, option, null, null);
+
+                cl_mem data_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_float2 * DATA_SIZE, Pointer.to(data), null);
+
+                cl_mem processed_mem = clCreateBuffer(context, CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_float2 * DATA_SIZE, Pointer.to(processed_data), null);
+
+                kernel_init = clCreateKernel(program, KERNEL_INIT, null);
+                kernel_bit_reversal = clCreateKernel(program, KERNEL_BIT_REVERSAL, null);
+                kernel_fft = clCreateKernel(program, KERNEL_FFT, null);
+                kernel_fft_inverse = clCreateKernel(program, KERNEL_FFT_INVERSE, null);
+
+                generateSample();
+
+                int N = DATA_SIZE;
+                int fftSize = 1;
+                int ns = log2(N);
+                int stages = 0;
+                int[] fftSizePtr = new int[1];
+
+                int[] Ni = new int[1];
+                Ni[0] = N;
+
+                clSetKernelArg(kernel_bit_reversal, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                clSetKernelArg(kernel_bit_reversal, 1, Sizeof.cl_uint, Pointer.to(Ni));
+
+                clEnqueueNDRangeKernel(queue,
+                                kernel_bit_reversal, 1, null,
+                                global_work_size_full,
+                                local_work_size,
+                                0, null, null);
+
+                int[] signPtr = new int[1];
+                signPtr[0] = 1;
+
+                for(int i = 0; i &lt; ns; i++) {
+                        fftSize &lt;&lt;= 1;
+                        fftSizePtr[0] = fftSize;
+
+                        if(fftSize !=2) {
+
+                                clSetKernelArg(kernel_fft, 0, Sizeof.cl_mem, Pointer.to(processed_mem));
+                                clSetKernelArg(kernel_fft, 1, Sizeof.cl_uint, Pointer.to(fftSizePtr));
+                                clSetKernelArg(kernel_fft, 2, Sizeof.cl_int, Pointer.to(signPtr));
+
+                                clEnqueueNDRangeKernel(queue,
+                                                kernel_fft, 1, null,
+                                                global_work_size,
+                                                local_work_size,
+                                                0, null, null);
+                        } else {
+                                clSetKernelArg(kernel_init, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                                clSetKernelArg(kernel_init, 1, Sizeof.cl_mem, Pointer.to(processed_mem));
+                                clSetKernelArg(kernel_init, 2, Sizeof.cl_uint, Pointer.to(fftSizePtr));
+
+                                clEnqueueNDRangeKernel(queue,
+                                                kernel_init, 1, null,
+                                                global_work_size,
+                                                local_work_size,
+                                                0, null, null);
+                        }
+
+                        stages++;
+                }
+
+                clSetKernelArg(kernel_bit_reversal, 0, Sizeof.cl_mem, Pointer.to(processed_mem));
+                clSetKernelArg(kernel_bit_reversal, 1, Sizeof.cl_uint, Pointer.to(Ni));
+
+                clEnqueueNDRangeKernel(queue,
+                                kernel_bit_reversal, 1, null,
+                                global_work_size_full,
+                                local_work_size,
+                                0, null, null);
+
+                signPtr[0] = -1;
+                fftSize = 1;
+                stages = 0;
+
+                for(int i = 0; i &lt; ns; i++) {
+                        fftSize &lt;&lt;= 1;
+                        fftSizePtr[0] = fftSize;
+
+                        clSetKernelArg(kernel_fft, 0, Sizeof.cl_mem, Pointer.to(processed_mem));
+                        clSetKernelArg(kernel_fft, 1, Sizeof.cl_uint, Pointer.to(fftSizePtr));
+                        clSetKernelArg(kernel_fft, 2, Sizeof.cl_int, Pointer.to(signPtr));
+
+                        clEnqueueNDRangeKernel(queue,
+                                        kernel_fft, 1, null,
+                                        global_work_size,
+                                        local_work_size,
+                                        0, null, null);
+
+                        stages++;
+                }
+
+                clSetKernelArg(kernel_fft_inverse, 0, Sizeof.cl_uint, Pointer.to(Ni));
+                clSetKernelArg(kernel_fft_inverse, 1, Sizeof.cl_mem, Pointer.to(processed_mem));
+
+                long[] global_work_size_scale = new long[]{DATA_SIZE,1,1};
+                long[] local_work_size_scale = new long[]{1,1,1};
+                clEnqueueNDRangeKernel(queue,
+                                kernel_fft_inverse, 1, null,
+                                global_work_size_scale,
+                                local_work_size_scale,
+                                0, null, null);
+
+                ByteBuffer output = clEnqueueMapBuffer(queue,
+                                processed_mem,
+                                CL_TRUE,
+                                CL_MAP_WRITE,
+                                0,
+                                Sizeof.cl_float2*DATA_SIZE,
+                                0,
+                                null,
+                                null,
+                                null);
+
+                clEnqueueUnmapMemObject(queue, processed_mem, output, 0, null, null);
+                clFinish(queue);
+
+                output.order(ByteOrder.LITTLE_ENDIAN);
+
+                for(int i = 0; i &lt; DATA_SIZE*2; i++) {
+                        System.out.println(output.getFloat());
+                }
+
+                clReleaseDevice(device[0]);
+                clReleaseContext(context);
+                clReleaseCommandQueue(queue);
+                clReleaseKernel(kernel_fft);
+                clReleaseKernel(kernel_init);
+                clReleaseProgram(program);
+        }
+
+        private static void generateSample() {
+                for(int i = 0; i &lt; DATA_SIZE*2; i+=2) {
+                        data[i] = i/2;
+                        data[i+1] = 0.0f;
+                }
+        }
+}</pre><p>
+</p><p><strong>fft1d.cl. </strong>
+</p><pre xmlns="" class="prettyprint">inline int reverseBit(int x, int stage) {
+        int b = 0;
+        int bits = stage;
+        while (bits != 0){
+                  b &lt;&lt;=1;
+                  b |=( x &amp;1 );
+                  x &gt;&gt;=1;
+                  bits&gt;&gt;=1;
+        }
+        return b;
+}
+
+__kernel void bit_reversal(__global float2* data, uint N) {
+        size_t gid = get_global_id(0);
+        uint rev = reverseBit(gid, N-1);
+        float2 in1;
+        float2 in2;
+        if(gid &lt; rev) {
+                in1 = data[gid];
+                in2 = data[rev];
+                printf("pair: %d - %d, N = %d\n", gid, rev, N);
+                data[rev] = in1;
+                data[gid] = in2;
+        }
+}
+
+__kernel void fft_init(
+                __global float2* data,
+                __global float2* F,
+                int N)
 {
+        int gid = get_global_id(0);
+        int stride = N/2;
+        float floor_adjust = gid/stride;
+        int index = ceil(floor_adjust)*stride + (gid);
 
-        __local float2 tile[size * (size+1)];
-        size_t x = get_global_id(0);
-        size_t y = get_global_id(1);
+        float2 in0, in1;
 
-        size_t lx = get_local_id(0);
-        size_t ly = get_local_id(1);
+        in0 = data[index];
+        in1 = data[index+stride];
 
-        size_t gx = get_group_id(0);
-        size_t gy = get_group_id(1);
+        float2 v0;
+        v0 = in0;
+        in0 = v0 + in1;
+        in1 = v0 - in1;
 
-        size_t index_input = y * width + x;
-    size_t index_tile = ly * (size+1) + lx;
-    tile[index_tile]=  input[index_input];
-        barrier(CLK_LOCAL_MEM_FENCE);
+        F[index] = in0;
+        F[index + stride] = in1;
 
-        size_t ox = gy * size + lx;
-        size_t oy = gx * size + ly;
+        printf("gid=%d, pair: %d - %d, N = %d, s = %d, in0:in1 = %f:%f\n", gid, index, index+stride, N, stride, F[index].x, F[index+stride].x);
 
-        size_t index_output = oy * height + ox;
-        index_tile = lx * (size+1) + ly;
-    output[index_output] = tile[index_tile];</pre><p>この転置カーネルはタイル方式を採用しており、sizeパラメータで指定した整数を縦・横の長さにしたタイルをローカルメモリとして作りこみます。</p><p>size変数は以下のようにコンパイル時に設定した値が使われます。</p><pre xmlns="" class="prettyprint">program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
-StringBuffer op = new StringBuffer();
-op.append("-Werror -Dsize=");
-op.append(LOCAL_SIZE);
-String option = op.toString();
-clBuildProgram(program, 0, null, option, null, null);</pre><p>ここではLOCAL_SIZEは4として設定していますので、行列を4x4のタイルに分けてから転置を行います。</p><div class="informaltable"><table class="informaltable" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /><col class="col_2" /><col class="col_3" /><col class="col_4" /><col class="col_5" /><col class="col_6" /><col class="col_7" /><col class="col_8" /></colgroup><tbody><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">2</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">3</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">4</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">5</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">6</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">7</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">8</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">9</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">10</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">11</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">12</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">13</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">14</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">15</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">16</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">17</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">18</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">19</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">20</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">21</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">22</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">23</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">24</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">25</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">26</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">27</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">28</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">29</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">30</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">31</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">32</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">33</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">34</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">35</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">36</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">37</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">38</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">39</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">40</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">41</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">42</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">43</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">44</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">45</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">46</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">47</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">48</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">49</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">50</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">51</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">52</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">53</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">54</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">55</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">56</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">57</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">58</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">59</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">60</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">61</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">62</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">63</pre></td><td style="" align="left" valign="top"><pre class="literallayout">64</pre></td></tr></tbody></table></div><p>ここからタイルを作りますが、まず一番左上の部分行列に注目します。</p><div class="informaltable"><table class="informaltable" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /><col class="col_2" /><col class="col_3" /><col class="col_4" /></colgroup><tbody><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">2</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">3</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">4</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">9</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">10</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">11</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">12</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">17</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">18</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">19</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">20</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">25</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">26</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">27</pre></td><td style="" align="left" valign="top"><pre class="literallayout">28</pre></td></tr></tbody></table></div><p>このタイル行列は以下のコードで作ることができます。</p><pre xmlns="" class="prettyprint">__local float2 tile[size * (size+1)];
-size_t x = get_global_id(0);
-size_t y = get_global_id(1);
+}
 
-size_t lx = get_local_id(0);
-size_t ly = get_local_id(1);
-size_t index_input = y * width + x;
-size_t index_tile = ly * (size+1) + lx;
-tile[index_tile]=  input[index_input];</pre><p>widthとheightは幅と高さを設定した値とし、input配列は行からスキャンしていきます。</p><pre xmlns="" class="prettyprint">size_t index_input = y * width + x;</pre><p>それをローカルメモリにあるtile配列に再配置します。</p><p>tile配列は転置すると以下のようになります。</p><div class="informaltable"><table class="informaltable" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /><col class="col_2" /><col class="col_3" /><col class="col_4" /></colgroup><tbody><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">9</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">17</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">25</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">2</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">10</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">18</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">26</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">3</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">11</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">19</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">27</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">4</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">12</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">20</pre></td><td style="" align="left" valign="top"><pre class="literallayout">28</pre></td></tr></tbody></table></div><p>表をみると行と列が入れ替わっていることがわかります。例えば1行目の（1,2,3,4）は、1列目に配置されています。</p><pre xmlns="" class="prettyprint">index_tile = lx * (size+1) + ly;</pre><p>1次元目のローカルインデックス、lx、2次元目のローカルインデックス、lyは、lx=0,ly=0は「1」、lx=0,ly=1は「2」、lx=3、ly=0は25というように読み込みをします。</p><p>これによりindex_tileは、転置する際の順序でtile配列の要素を読み込む際の添字として使用ができます。</p><p>読み込んだ要素はグローバルメモリ空間にある出力配列に再配置しますが、この再配置を行うための添字の算出には以下のコードを使います。</p><pre xmlns="" class="prettyprint">(gx * size + lx) * height + gy * size + ly</pre><p>このコードを考えるために以下の部分配列を例としてみましょう。</p><div class="informaltable"><table class="informaltable" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /><col class="col_2" /><col class="col_3" /><col class="col_4" /></colgroup><tbody><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">5</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">6</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">7</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">8</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">9</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">10</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">11</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">12</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">13</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">14</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">15</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">16</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">17</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">18</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">19</pre></td><td style="" align="left" valign="top"><pre class="literallayout">20</pre></td></tr></tbody></table></div><p>まず行列の高さは8なので、height＝8となります。次ぎにグループIDはgx=1、gy=0となります。これは一番上（gy=0）にあり、かつ横に一つ（gx=0）タイルをずらした部分（タイル）行列となるからです。</p><p>一番左上の要素「5」では、lx=0、ly=0となるので、</p><pre xmlns="" class="prettyprint">(1 * 4 + 0) * 8 + 0 * 4 + 0 = 32</pre><p>となります。インデックス（添字）が32の場合、配列の値は33となります。（1,9,17,25,33,41,49,57）が1列目なので、その中の左から5番目の要素が33となります。</p><p>もう一つ例をみてみましょう。一番左側（gx=0）の一つ下（gy=0）の部分配列を考えてみましょう。</p><div class="informaltable"><table class="informaltable" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /><col class="col_2" /><col class="col_3" /><col class="col_4" /></colgroup><tbody><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">33</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">34</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">35</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">36</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">41</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">42</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">43</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">44</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">49</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">50</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">51</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">52</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">57</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">58</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">59</pre></td><td style="" align="left" valign="top"><pre class="literallayout">60</pre></td></tr></tbody></table></div><p>先ほど値5のインデックスが値33と交換されることを確認したので、今度は33が5と交換されるか確認をしてみます。</p><pre xmlns="" class="prettyprint">(0 * 4 + 0) * 8 + (1 * 4 + 0) = 4</pre><p>インデックスが4の配列要素の値は5となるので、これで相互の関係が確認できました。</p><p>最後に対角線上(diagonal)の要素が一致するかを確認してみましょう。今回は縦横一つずらし（gx=1,gy=1）のタイル行列を見てみます。</p><div class="informaltable"><table class="informaltable" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /><col class="col_2" /><col class="col_3" /><col class="col_4" /></colgroup><tbody><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">37</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">38</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">39</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">40</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">45</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">46</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">47</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">48</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">53</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">54</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">55</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">56</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">61</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">62</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">63</pre></td><td style="" align="left" valign="top"><pre class="literallayout">64</pre></td></tr></tbody></table></div><p>例えば37の値（インデックスは36）の配置が変わらないことを確認してみましょう。</p><pre xmlns="" class="prettyprint">(1 * 4 + 0) * 8 + (1 * 4 + 0) = 36</pre><p>これにより対角線上の要素についても転置対応が確認できました。</p><p>上記の例の場合では、ホストコードでは以下のように、設定を行います。</p><pre xmlns="" class="prettyprint">private static final int width = 8;
-private static final int height = 8;
 
-private static final int DATA_SIZE = width*height;
-private static final int LOCAL_SIZE = 4;
+__kernel void fft(
+                __global float2* F,
+                int N,
+                int sign)
+{
+        int gid = get_global_id(0);
+        int stride = N/2;
+        float floor_adjust = gid/stride;
+        int index = ceil(floor_adjust)*stride + (gid);
 
-private static long[] global_work_size_rect = new long[]{width,height,1};
-private static long[] local_work_size_rect = new long[]{LOCAL_SIZE,LOCAL_SIZE,1};
+        float2 in0, in1;
 
-private static void transpose(cl_mem input_mem, cl_mem output_mem) {
+        in0 = F[index];
+        in1 = F[index+stride];
 
-    int[] widthPtr = new int[1];
-    widthPtr[0]=width;
-    int[] heightPtr = new int[1];
-    heightPtr[0]=height;
+        float angle = -2*M_PI_F*(index)/N;
 
-    clSetKernelArg(kernel_transpose, 0, Sizeof.cl_mem, Pointer.to(input_mem));
-    clSetKernelArg(kernel_transpose, 1, Sizeof.cl_mem, Pointer.to(output_mem));
-    clSetKernelArg(kernel_transpose, 2, Sizeof.cl_int, Pointer.to(widthPtr));
-    clSetKernelArg(kernel_transpose, 3, Sizeof.cl_int, Pointer.to(heightPtr));
+        float c,s;
+        float2 v;
+        float2 tmp0;
 
-    clEnqueueNDRangeKernel(queue,
-            kernel_transpose, 2, null,
-            global_work_size_rect,
-            local_work_size_rect,
-            0, null, null);
-}</pre><p>最後にタイルの構成について補記します。以下のコードでは、本来16要素分のローカルメモリ空間があれば十分なのに、size個の要素を余分に割り当てをしています。</p><pre xmlns="" class="prettyprint">__local float2 tile[size * (size+1)];</pre><p>これは、バンクコンフリクトを避けるためのOpenCLにおけるデータアクセスデザインパターンの一種です。</p><p>このようにアクセスが一つずらすと、バンクがsize(コードでは4に設定)の倍数とするのであれば、1つずらすと連続するアクセスが同じバンクをヒットする可能性を低く抑えることが可能となります。</p><p>実装例では以下のようなアクセスのパターンとなり、仮に0,4,8,12がバンクだとすると、0,5,10,15とするので、第一バンク(0-0=0)、第二バンク(5-4=1)、第三バンク(10-8=2)、第四バンク(15-12=3)と巧妙に同一バンクでの重複（衝突）がおきないように回避がなされていることがわかるかと思います。</p><div class="informaltable"><table class="informaltable" cellpadding="4px" style="border-collapse: collapse;border-top: 3px solid #527bbd; border-bottom: 3px solid #527bbd; border-left: 3px solid #527bbd; border-right: 3px solid #527bbd; "><colgroup><col class="col_1" /><col class="col_2" /><col class="col_3" /><col class="col_4" /><col class="col_5" /><col class="col_6" /><col class="col_7" /><col class="col_8" /><col class="col_9" /><col class="col_10" /><col class="col_11" /></colgroup><tbody><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout"></pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">gx</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">gy </pre></td><td style="border-bottom: 1px solid #527bbd; " colspan="8" align="center" valign="top"><pre class="literallayout"></pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">index_tile</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">5</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">10</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">15</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">6</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">11</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">16</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">index_out</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">2</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">3</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">8</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">9</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">10</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">11</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">index_tile</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">5</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">10</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">15</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">6</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">11</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">16</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">index_out</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">4</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">5</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">6</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">7</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">12</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">13</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">14</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">15</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">index_tile</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">0</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">5</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">10</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">15</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">6</pre></td><td style="border-right: 1px solid #527bbd; border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">11</pre></td><td style="border-bottom: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">16</pre></td></tr><tr><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">index_out</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">1</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">36</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">37</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">38</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">39</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">44</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">45</pre></td><td style="border-right: 1px solid #527bbd; " align="left" valign="top"><pre class="literallayout">46</pre></td><td style="" align="left" valign="top"><pre class="literallayout">47</pre></td></tr></tbody></table></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch12s05.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch12.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch12s07.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+        c = native_cos(angle);
+        s = sign*native_sin(angle);
+
+        v.x = c * (in1.x) - s * in1.y;
+        v.y = c * (in1.y) + s * in1.x;
+
+        tmp0 = in0;
+
+        in0 = tmp0 + v;
+        in1 = tmp0 - v;
+
+        F[index] = in0;
+        F[index + stride] = in1;
+
+        printf("gid=%d, pair: %d - %d, N = %d, s = %d, sign = %d c:s = %f:%f\n in0:in1 = %f:%f\n", gid, index, index+stride, N, stride, sign, c, s, F[index].x, F[index+stride].x);
+
+}
+
+__kernel void fft_inverse(
+    int N,
+    __global float2* F)
+{
+        size_t gid = get_global_id(0);
+        F[gid] /= N;
+}</pre><p>
+</p><p>下記はFFTカーネル関数が出力したFFTの処理情報となります。処理点の数はN、処理点間の距離はs、pairが実行中の2つの処理点（in0、in1）、gidがグローバルIDとなっています。cはcos関数、sはsin関数の値です。</p><pre xmlns="" class="prettyprint">gid=2, pair: 4 - 5, N = 2, s = 1, in0:in1 = 6.000000:-4.000000
+gid=0, pair: 0 - 1, N = 2, s = 1, in0:in1 = 4.000000:-4.000000
+gid=3, pair: 6 - 7, N = 2, s = 1, in0:in1 = 10.000000:-4.000000
+gid=1, pair: 2 - 3, N = 2, s = 1, in0:in1 = 8.000000:-4.000000
+gid=2, pair: 4 - 6, N = 4, s = 2, sign = 1 c:s = 1.000000:-0.000000
+ in0:in1 = 16.000000:-4.000000
+gid=0, pair: 0 - 2, N = 4, s = 2, sign = 1 c:s = 1.000000:-0.000000
+ in0:in1 = 12.000000:-4.000000
+gid=3, pair: 5 - 7, N = 4, s = 2, sign = 1 c:s = -0.000000:-1.000000
+ in0:in1 = -3.999999:-4.000001
+gid=1, pair: 1 - 3, N = 4, s = 2, sign = 1 c:s = -0.000000:-1.000000
+ in0:in1 = -4.000000:-4.000000
+gid=2, pair: 2 - 6, N = 8, s = 4, sign = 1 c:s = -0.000000:-1.000000
+ in0:in1 = -3.999999:-4.000001
+gid=0, pair: 0 - 4, N = 8, s = 4, sign = 1 c:s = 1.000000:-0.000000
+ in0:in1 = 28.000000:-4.000000
+gid=3, pair: 3 - 7, N = 8, s = 4, sign = 1 c:s = -0.707110:-0.707110
+ in0:in1 = -3.999999:-4.000001
+gid=1, pair: 1 - 5, N = 8, s = 4, sign = 1 c:s = 0.707110:-0.707110
+ in0:in1 = -3.999999:-4.000001</pre><p>下記は上に同じく処理情報ですが、今度は逆（inverse）FFTの情報を採集しています。sign変数が「-1」となっていることに注目ください。</p><pre xmlns="" class="prettyprint">gid=0, pair: 0 - 1, N = 2, s = 1, sign = -1 c:s = 1.000000:0.000000
+ in0:in1 = 24.000000:32.000000
+gid=2, pair: 4 - 5, N = 2, s = 1, sign = -1 c:s = 1.000000:0.000000
+ in0:in1 = -8.000000:0.000001
+gid=3, pair: 6 - 7, N = 2, s = 1, sign = -1 c:s = 1.000000:0.000000
+ in0:in1 = -8.000000:0.000002
+gid=1, pair: 2 - 3, N = 2, s = 1, sign = -1 c:s = 1.000000:0.000000
+ in0:in1 = -8.000000:0.000002
+gid=2, pair: 4 - 6, N = 4, s = 2, sign = -1 c:s = 1.000000:0.000000
+ in0:in1 = -15.999999:-0.000001
+gid=0, pair: 0 - 2, N = 4, s = 2, sign = -1 c:s = 1.000000:0.000000
+ in0:in1 = 16.000000:32.000000
+gid=3, pair: 5 - 7, N = 4, s = 2, sign = -1 c:s = -0.000000:1.000000
+ in0:in1 = -11.313758:11.313760
+gid=1, pair: 1 - 3, N = 4, s = 2, sign = -1 c:s = -0.000000:1.000000
+ in0:in1 = 24.000000:40.000000
+gid=2, pair: 2 - 6, N = 8, s = 4, sign = -1 c:s = -0.000000:1.000000
+ in0:in1 = 16.000000:48.000000
+gid=0, pair: 0 - 4, N = 8, s = 4, sign = -1 c:s = 1.000000:0.000000
+ in0:in1 = 0.000001:32.000000
+gid=3, pair: 3 - 7, N = 8, s = 4, sign = -1 c:s = -0.707110:0.707110
+ in0:in1 = 23.999861:56.000137
+gid=1, pair: 1 - 5, N = 8, s = 4, sign = -1 c:s = 0.707110:0.707110
+ in0:in1 = 7.999863:40.000137</pre><p>プログラムが処理を終えた結果は以下のようになります。</p><pre xmlns="" class="prettyprint">1.1920929E-7
+-3.5762787E-7
+0.99998283
+-2.526322E-7
+2.0
+-5.9604645E-8
+2.9999826
+-4.7709625E-7
+4.0
+2.3841858E-7
+5.000017
+1.9301845E-7
+6.0
+1.7881393E-7
+7.000017
+-6.554011E-7</pre><p>元のデータがほとんど完全な形で復元に成功しています。</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch12s05.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch12.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch13.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

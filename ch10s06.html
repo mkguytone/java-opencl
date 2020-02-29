@@ -1,208 +1,53 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>10.6. バンクコンフリクトを緩和する実装例</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch10.html" title="第10章 ヒストグラム" /><link rel="prev" href="ch10s05.html" title="10.5. Stride型のアルゴリズム" /><link rel="next" href="ch10s07.html" title="10.7. アトミック型のアルゴリズム" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>10.6. 型変換</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch10.html" title="第10章 OpenCL C言語プログラミング" /><link rel="prev" href="ch10s05.html" title="10.5. 整数関数" /><link rel="next" href="ch10s07.html" title="10.7. 幾何関数" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch10s05.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch10s07.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_バンクコンフリクトを緩和する実装例"></a>10.6. バンクコンフリクトを緩和する実装例</h2></div></div></div><div class="warning" style="margin-left: 0; margin-right: 10%;"><h3 class="title">警告</h3><p>この項目で紹介したソースコードは、バンクコンフリクトの最悪のシナリオのガードにはなりますが、パフォーマンス的には必ずしも早くなることを意味しません。また4KBでアラインしたデータサイズが崩れるため、メモリスピルが発生する可能性もありますので、注意しながら確認してみてください。</p></div><p>前の項目で紹介した実装例に対してバンクコンフリクトの緩和ができるように、調整したソースコードです。</p><p>バンクが衝突しないようにする対策で一番シンプルなものは、ホストAPIのメモリ空間割り当て時のサイズを一要素増やすことです。</p><pre xmlns="" class="prettyprint">clSetKernelArg(kernel, 1, Sizeof.cl_uint * (LOCAL_SIZE+1) * BIN_SIZE, null);</pre><p>これに対応してカーネル関数にも以下のような変更を加えます。</p><pre xmlns="" class="prettyprint">for(int i = 0; i &lt; BIN_SIZE/4; ++i)
-    input[(local_size+1) * i + lid] = 0;
-//
-// Omit the intermediate steps
-//
-shared_local_memory[value.s0 * (local_size+1) + stride + bank_number]++</pre><p>これによりバンクのアクセスが毎回一個分だけづれることになり、衝突を幾分か緩和する可能性があります。</p><p><strong>HistogramBankStride4kbslmAdjusted.java. </strong>
-</p><pre xmlns="" class="prettyprint">package com.book.jocl.histogram;
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch10s05.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch10s07.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_型変換"></a>10.6. 型変換</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_暗黙型変換"></a>10.6.1. 暗黙型変換</h3></div></div></div><p>OpenCLではvoid、halfを除いたスカラ型の暗黙の型変換をサポートします。暗黙型変換では、単なるビット構成の再解釈ではなく、同一の値に変換します。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_明示的型変換_キャスト"></a>10.6.2. 明示的型変換（キャスト）</h3></div></div></div><p>明示的型変換もOpenCLはサポートしますが、ベクトル型はサポート外です。例えば以下のキャストは不正です。</p><pre xmlns="" class="prettyprint">float4 num;
+int4 i = (int4) num; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO97-1"></a>(1)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO97-1">(1)</a> </p></td><td valign="top" align="left"><p>
+不正なベクトル型キャスト。
+</p></td></tr></table></div><p>例外としては、スカラ型をベクトル型にキャストする場合です。</p><pre xmlns="" class="prettyprint">int x = 10;
+int4 i = (int4) x; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO98-1"></a>(1)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO98-1">(1)</a> </p></td><td valign="top" align="left"><p>
+有効なキャスト。
+</p></td></tr></table></div><p>この例では、(10,10,10,10)として正常に（スカラ型からベクトル型へ）キャストが行なわれます。</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_変換関数"></a>10.6.3. 変換関数</h3></div></div></div><p>ベクトルのキャストを行なう場合は、convert変換関数を使うことができます。</p><p><strong>定義. </strong>
+</p><pre xmlns="" class="prettyprint">destType convert_destType&lt;_sat&gt;&lt;_roundingMode&gt; (sourceType)</pre><p>
+</p><p>定義の中の &lt;&gt; で囲まれた箇所はオプションなので除外できます。一番シンプルな例は、オプションを使わない場合です。 &lt;_sat&gt; は演算結果の飽和を指定、 &lt;_roundingMode&gt; は丸めモードの指定します。</p><pre xmlns="" class="prettyprint">uint4 num = (uint4)(...);
+int4 y = convert_int4(num); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO99-1"></a>(1)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO99-1">(1)</a> </p></td><td valign="top" align="left"><p>
+符号無し整数に変換しています。
+</p></td></tr></table></div><pre xmlns="" class="prettyprint">uint4 num = (uint4)(...);
+int4 y = convert_int4_sat(num); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO100-1"></a>(1)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO100-1">(1)</a> </p></td><td valign="top" align="left"><p>
+符号無し整数に変換し、値が溢れる場合は結果を飽和させます。
+</p></td></tr></table></div><pre xmlns="" class="prettyprint">uint4 num = (uint4)(...);
+int4 y = convert_int4_sat_rtz(num); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO101-1"></a>(1)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO101-1">(1)</a> </p></td><td valign="top" align="left"><p>
+0への丸めモードで符号無し整数に変換します。値が溢れる場合は結果を飽和させます。
+</p></td></tr></table></div><p>次に簡単な例を見てみましょう。</p><p><strong>サンプル. </strong>
+</p><pre xmlns="" class="prettyprint">float x = 12345.12345f;
+uint y = convert_uint(x);
+printf("convert_uint: %u\n",y);
 
-import static org.jocl.CL.*;
+float2 x_v2 = (float2)(1.234f, 4.9f);
+uint2 y_v2 = convert_uint2(x_v2);
+printf("convert_uint2: %#v2u\n", y_v2);
 
-import java.io.File;
-import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.file.Paths;
-import java.util.Random;
-import java.util.Scanner;
+float4 x_v4 = (float4)(1.234f, FLT_MIN, MAXFLOAT, -MAXFLOAT); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO102-1"></a>(1)
+int4 y_v4_sat = convert_int4_sat(x_v4);
+printf("convert_int4_sat: %#v4d\n", y_v4_sat);
 
-import org.jocl.CL;
-import org.jocl.Pointer;
-import org.jocl.Sizeof;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_context_properties;
-import org.jocl.cl_device_id;
-import org.jocl.cl_kernel;
-import org.jocl.cl_mem;
-import org.jocl.cl_platform_id;
-import org.jocl.cl_program;
+int4 y_v4_sat_rtz = convert_int4_sat_rtz(x_v4);
+printf("convert_int4_sat_rtz: %#v4d\n", y_v4_sat_rtz);
 
-public class HistogramBankStride4kbslmAdjusted {
-
-        private static final String KERNEL_PATH = "histogram.cl";
-        private static final String KERNEL_FUNC = "histogram";
-        private static final int BIN_SIZE = 256;
-        private static final int LOCAL_SIZE = 4;
-        private static final int WG_SIZE = 16;
-        private static final int DATA_SIZE = BIN_SIZE * LOCAL_SIZE * WG_SIZE;
-        private static final int[] data = new int[DATA_SIZE];
-
-    private static cl_context context;
-    private static cl_command_queue queue;
-    private static cl_program program;
-    private static cl_kernel kernel;
-
-        public static void main(String[] args) throws Exception {
-
-                CL.setExceptionsEnabled(true);
-
-                cl_platform_id[] platform = new cl_platform_id[1];
-                cl_device_id[] device = new cl_device_id[1];
-                int[] num_devices = new int[1];
-
-                clGetPlatformIDs(1, platform, null);
-                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, num_devices);
-
-                cl_context_properties props = new cl_context_properties();
-                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
-                context = clCreateContext(props, 1, device, null, null, null);
-
-                queue = clCreateCommandQueue(context, device[0], 0, null);
-
-                StringBuffer sb  = new StringBuffer();
-                URL resource = HistogramBankStride4kbslm.class.getResource(KERNEL_PATH) ;
-                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
-                Scanner sc = new Scanner(new File(path));
-                while(sc.hasNext()) {
-                        sb.append(sc.nextLine() + "\n");
-                }
-                sc.close();
-                program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
-                String option = "-Werror -DBIN_SIZE=256";
-                clBuildProgram(program, 0, null, option, null, null);
-
-                cl_mem data_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-                                Sizeof.cl_uint4 * DATA_SIZE, Pointer.to(data), null);
-
-                cl_mem subHistogram = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR,
-                                Sizeof.cl_uint*BIN_SIZE*WG_SIZE, null, null);
-
-                kernel = clCreateKernel(program, KERNEL_FUNC, null);
-
-                generateSample();
-
-                clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(data_mem));
-                clSetKernelArg(kernel, 1, Sizeof.cl_uint * (LOCAL_SIZE+1) * BIN_SIZE, null);
-                clSetKernelArg(kernel, 2, Sizeof.cl_mem, Pointer.to(subHistogram));
-
-                long[] global_work_size = new long[]{WG_SIZE * LOCAL_SIZE,1,1};
-                long[] local_work_size = new long[]{LOCAL_SIZE,1,1};
-                clEnqueueNDRangeKernel(queue,
-                                kernel, 1,
-                                null,
-                                global_work_size,
-                                local_work_size,
-                                0, null, null);
-
-                ByteBuffer output = clEnqueueMapBuffer(queue,
-                                subHistogram,
-                                CL_TRUE,
-                                CL_MAP_WRITE,
-                                0,
-                                Sizeof.cl_uint*BIN_SIZE*WG_SIZE,
-                                0,
-                                null,
-                                null,
-                                null);
-
-                clEnqueueUnmapMemObject(queue, subHistogram, output, 0, null, null);
-                clFinish(queue);
-
-                int[] outputHistogram = new int[BIN_SIZE*WG_SIZE];
-                int[] result = new int[BIN_SIZE];
-                output.order(ByteOrder.LITTLE_ENDIAN);
-                int i,j;
-                for(i = 0; i &lt; WG_SIZE; ++i) {
-                        for(j = 0; j &lt; BIN_SIZE; ++j) {
-                                outputHistogram[j*WG_SIZE+i] = output.getInt();
-                        }
-                }
-                for(i = 0; i &lt; WG_SIZE; ++i) {
-                        for(j = 0; j &lt; BIN_SIZE; ++j) {
-                                result[j] += outputHistogram[j*WG_SIZE+i];
-                        }
-                }
-                for(i = 0; i &lt; BIN_SIZE; ++i) {
-                        System.out.printf("TOTAL[%d]: %d\n", i, result[i]);
-                }
-
-                clReleaseDevice(device[0]);
-                clReleaseContext(context);
-                clReleaseCommandQueue(queue);
-                clReleaseKernel(kernel);
-                clReleaseProgram(program);
-        }
-
-        private static void generateSample() {
-                //Random rnd = new Random();
-                for(int i = 0; i &lt; DATA_SIZE; i++) {
-                        //data[i] = (byte) (rnd.nextInt(256));
-                        //data[i] = (i%32);
-                        data[i] = 254;
-                }
-
-        }
-
-}</pre><p>
-</p><p><strong>histogram.cl. </strong>
-</p><pre xmlns="" class="prettyprint">#define BIN_SIZE 256
-
-//4KB = 4 threads
-//16 WG
-
-__kernel void histogram(
-                __global uint4* data,
-        __local uint* shared_local_memory,
-        __global uint* buckets) {
-
-        size_t lid = get_local_id(0);
-
-        size_t group_id = get_group_id(0);
-        size_t local_size = get_local_size(0);
-
-        int offset = lid % 2; // 0,1
-        int stride = 2 * offset; // 0,2
-        int bank_number = lid &gt;&gt; 1; // 0,1
-
-        __local uchar4* input = (__local uchar4*) shared_local_memory;
-
-        for(int i = 0; i &lt; BIN_SIZE/4; ++i)
-                input[(local_size+1) * i + lid] = 0;
-        barrier(CLK_LOCAL_MEM_FENCE);
-
-        for(int i = 0; i &lt; BIN_SIZE /4; ++i) {
-
-             uint4 value = data[
-                        group_id * local_size * (BIN_SIZE / 4) + i *
-                        local_size + lid];
-             // (0...15) * 4 * 256 / 4 + (0..63) * 4 + lid
-
-             shared_local_memory[value.s0 * (local_size+1) + stride + bank_number]++; // value.s0, s1, s2, s3 is random, may update same position
-             shared_local_memory[value.s1 * (local_size+1) + stride + bank_number]++;
-             shared_local_memory[value.s2 * (local_size+1) + stride + bank_number]++;
-             shared_local_memory[value.s3 * (local_size+1) + stride + bank_number]++;
-
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-
-        if(lid == 0) { // each work-group only has 1 work-item executing this code block
-             for(size_t i = 0; i &lt; BIN_SIZE; i++) {
-               int result = 0;
-               for(size_t j = 0; j &lt; local_size; j++) {
-                 result += shared_local_memory[i * (local_size+1) + j];
-                 // [0..255]*4 + 0...3 =&gt; min 0, max 1023
-               }
-               buckets[group_id * BIN_SIZE  + i] = result; // 0..15 * 256 + 0...255
-             }
-        }
-}</pre><p>
-</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10s05.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch10s07.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+int4 y_v4_sat_rtp = convert_int4_sat_rtp(x_v4);
+printf("convert_int4_sat_rtp: %#v4d\n", y_v4_sat_rtp);</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO102-1">(1)</a> </p></td><td valign="top" align="left"><p>
+FLT_MINは「0x1.0p-126f」、MAXFLOATはfloatが取れる有限の最大値です。
+</p></td></tr></table></div><p><strong>出力. </strong>
+</p><pre xmlns="" class="prettyprint">convert_uint: 12345
+convert_uint2: 1,4
+convert_int4_sat: 1,0,2147483647,-2147483648
+convert_int4_sat_rtz: 1,0,2147483647,-2147483648
+convert_int4_sat_rtp: 2,1,2147483647,-2147483648
+komatsumasaki-no-Mac-mini:build komatsu$</pre><p>
+</p><p>変換関数は数学的直感として理解するものなので、細かくは説明はしません。この例では、飽和によりint型の最大、最小値に、float型の最大、最小値が変換されていることが分かるかと思います。</p><p>丸めモードはrtz（0への丸め）がデフォルト設定です。</p><div class="note" style="margin-left: 0; margin-right: 10%;"><h3 class="title">注記</h3><p>丸めモードについては、「表：丸めモード」（<a class="xref" href="">???</a>） を参照ください。</p></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10s05.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch10s07.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

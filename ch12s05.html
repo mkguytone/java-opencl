@@ -1,504 +1,223 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>12.5. 2次元カーネルの実装</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch12.html" title="第12章 2次元高速フーリエ変換" /><link rel="prev" href="ch12s04.html" title="12.4. 実装例（GPGPU）" /><link rel="next" href="ch12s06.html" title="12.6. GPGPUへの修正点（メモリストライド・Bank Conflict対策）" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>12.5. 実装例（CPU）</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch12.html" title="第12章 高速フーリエ変換（Fast Fourier Transform）" /><link rel="prev" href="ch12s04.html" title="12.4. 高速フーリエ変換（Fast Fourier Transform）" /><link rel="next" href="ch12s06.html" title="12.6. 実装例（GPU）" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch12s04.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch12s06.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_2次元カーネルの実装"></a>12.5. 2次元カーネルの実装</h2></div></div></div><p>2次元FFTの実装は、各行・各列のスライス（配列）を独立して処理することになります。</p><p>もちろん前の項目で紹介した1次元FFTカーネルを各行、各列にそのまま適用することも可能です。ただこの項目では、OpenCLのカーネルのインデックス空間を2次元に拡大して、1つのカーネルで全行、全列を処理する方法を紹介させていただきます。</p><p>まずワークサイズについては以下のように2次元として設定します。</p><pre xmlns="" class="prettyprint">private static long[] global_work_size = new long[]{width/2,height,1};
-private static long[] local_work_size = new long[]{1,1,1};</pre><p>一つ目の次元のワークサイズがwidth/2に設定していますが、FFTでは処理点が全データの要素の半分となるため、ワークサイズ（インデックス空間）についても半分としています。</p><pre xmlns="" class="prettyprint">__kernel void fft2d(
-                __global float2* F,
-                int N,
-                int sign)
-{
-        int x = get_global_id(0);
-        int row_size = get_global_size(0)*2;
-        int y = get_global_id(1);
-        int stride = N/2;
-        float floor_adjust = x/stride;
-        int index = ceil(floor_adjust)*stride + (x%row_size);
-
-        float2 in0, in1;
-
-        in0 = F[y*row_size + index];
-        in1 = F[y*row_size + index+stride];
-
-        float angle = -2*M_PI_F*(index)/N;
-
-        float c,s;
-        float2 v;
-        float2 tmp0;
-
-        c = native_cos(angle);
-        s = sign*native_sin(angle);
-
-        v.x = c * (in1.x) - s * in1.y;
-        v.y = c * (in1.y) + s * in1.x;
-
-        tmp0 = in0;
-
-        in0 = tmp0 + v;
-        in1 = tmp0 - v;
-
-        F[y*row_size + index] = in0;
-        F[y*row_size + index + stride] = in1;
-
-}</pre><p>1次元からの大きな変更点としては各行を一つ一つ処理するために、yとrow_sizeの2つの変数が追加されたことです。</p><pre xmlns="" class="prettyprint">in0 = F[y*row_size + index];
-in1 = F[y*row_size + index+stride];</pre><p>この記述では、Fは2次元行列でindexは行の中の要素に対応します。またy*row_sizeは、y行を指定します。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_全体の流れ"></a>12.5.1. 全体の流れ</h3></div></div></div><p>擬似フロー（<a class="xref" href="ch12s02.html#fft-2d-procedure" title="図12.2 図：2次元FFTの手順">図12.2「図：2次元FFTの手順」</a>）にある通り、2D-FFTの手順には、4回のビット反転、2回の行列転置を行う必要があります。</p><p>実装例では以下のような流れで処理をしています。</p><pre xmlns="" class="prettyprint">bit_reverse(data_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-1"></a>(1)
-fft_2d(width, data_mem,processed_mem,1,true); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-2"></a>(2)
-
-transpose(processed_mem, transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-3"></a>(3)
-
-bit_reverse(transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-4"></a>(4)
-fft_2d(height,null,transpose_mem,1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-5"></a>(5)
-
-bit_reverse(transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-6"></a>(6)
-fft_2d(height,null,transpose_mem,-1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-7"></a>(7)
-fft_inverse2d(height,transpose_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-8"></a>(8)
-
-transpose(transpose_mem, processed_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-9"></a>(9)
-
-bit_reverse(processed_mem); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-10"></a>(10)
-fft_2d(width,null,processed_mem,-1,false); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-11"></a>(11)
-fft_inverse2d(width,processed_mem);     //<a xmlns="http://www.w3.org/1999/xhtml" id="CO113-12"></a>(12)</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-1">(1)</a> </p></td><td valign="top" align="left"><p>
-元データ（data_mem）のビット反転。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-2">(2)</a> </p></td><td valign="top" align="left"><p>
-元データを変換して、処理済みデータ（processed_mem）に書き込み。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-3">(3)</a> </p></td><td valign="top" align="left"><p>
-処理済みデータ（processed_mem）を転置して、転置データ（transpose_mem）に書き込み。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-4">(4)</a> </p></td><td valign="top" align="left"><p>
-転置データ（transpose_mem）のビット反転。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-5">(5)</a> </p></td><td valign="top" align="left"><p>
-転置データ（transpose_mem）のFFTをして転置データ（transpose_mem）を更新。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-6">(6)</a> </p></td><td valign="top" align="left"><p>
-転置データ（transpose_mem）のビット反転。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-7">(7)</a> </p></td><td valign="top" align="left"><p>
-転置データ（transpose_mem）の逆FFTをして転置データ（transpose_mem）を更新。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-8">(8)</a> </p></td><td valign="top" align="left"><p>
-転置データ（transpose_mem）にスケールファクターをかけて値を調整します。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-9">(9)</a> </p></td><td valign="top" align="left"><p>
-転置データ（transpose_mem）を転置して、処理済みデータ（processed_mem）に書き込み。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-10">(10)</a> </p></td><td valign="top" align="left"><p>
-処理済みデータ（processed_mem）のビット反転。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-11">(11)</a> </p></td><td valign="top" align="left"><p>
-処理済みデータ（processed_mem）のFFTをしてデータを更新。
-</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO113-12">(12)</a> </p></td><td valign="top" align="left"><p>
-処理済みデータ（processed_mem）にスケールファクターをかけて値を調整します。
-</p></td></tr></table></div><p>bit_reverse関数がビット反転、transpose関数が転置、fft_2dが高速フーリエ変換（第4引数を-1にすると逆変換）、fft_inverse2dが逆フーリエ変換のスケーリングに対応します。</p><p>fft_inverse2dは以下のカーネル関数に対応します。</p><pre xmlns="" class="prettyprint">__kernel void fft_inverse2d(int N, __global float2* F) {
-        size_t x = get_global_id(0);
-        size_t row_size = get_global_size(0);
-        size_t y = get_global_id(1);
-        F[y*row_size + x] /= N;
-}</pre><p>この関数は単純に全ての要素に処理するデータサイズ（N）で割り算をしています。</p><p><strong>FFTGPU2D.java. </strong>
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch12s04.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch12s06.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_実装例_cpu"></a>12.5. 実装例（CPU）</h2></div></div></div><p>本書はGPGPUを主題として取り扱っているため、あまり深くCPUでの実装を解説はしません。しかし並列化される前のアルゴリズムを適度に理解できていないと、並列化したアルゴリズムを理解するのは困難でしょう。</p><p>CPU実装が理解できないとGPGPU実装が理解できないわけではありませんが、シーケンシャルなアルゴリズムを、並列アルゴリズムに移行させる困難さは、シーケンシャルなものを先に実装することで大幅に軽減されます。</p><p>FFTについて初めての読者は面倒がらずに、CPU実装を十分に理解できてから、GPGPUに進むようにしてください。そのほうが結果的に時間をセーブできるはずです。</p><p><strong>FFTCPU1D.java. </strong>
 </p><pre xmlns="" class="prettyprint">package com.book.jocl.fft;
 
-import static org.jocl.CL.*;
+public class FFTCPU1D {
 
-import java.io.File;
-import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.file.Paths;
-import java.util.Scanner;
+        private static double _PI = Math.PI;
+        private static int size = 256;
+        private static int _SIGN = 1;
 
-import org.jocl.CL;
-import org.jocl.Pointer;
-import org.jocl.Sizeof;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_context_properties;
-import org.jocl.cl_device_id;
-import org.jocl.cl_kernel;
-import org.jocl.cl_mem;
-import org.jocl.cl_platform_id;
-import org.jocl.cl_program;
+        private static void forward(int N, int offset, double[] data, double[] F, int sign, int step) {
+                int N2 = N/2;
+                double c, s;
+                double real, imaginary;
 
-public class FFTGPU2D {
-        private static final String KERNEL_PATH = "fft2d.cl";
-        private static final String KERNEL_INIT = "fft_init";
-        private static final String KERNEL_BIT_REVERSAL = "bit_reversal";
-        private static final String KERNEL_FFT = "fft2d";
-        private static final String KERNEL_FFT_INVERSE = "fft_inverse2d";
-        //private static final String KERNEL_FFT_TRANSPOSE = "async_transpose";
-        private static final String KERNEL_TRANSPOSE = "transpose";
+                step++;
 
-    private static cl_context context;
-    private static cl_command_queue queue;
-    private static cl_program program;
-    private static cl_kernel kernel_init;
-    private static cl_kernel kernel_bit_reversal;
-    private static cl_kernel kernel_fft;
-    private static cl_kernel kernel_fft_inverse;
-    //private static cl_kernel kernel_fft_transpose;
-    private static cl_kernel kernel_transpose;
+                if(N2 != 2) {
+                        forward(N2,offset,data,F,sign,step);
+                        forward(N2,offset+N2,data,F,sign,step);
 
-        private static final int width = 16;
-        private static final int height = 16;
+                        for(int i = 0; i &lt; N2; i+=2) {
+                                // sin -x = -sin x
+                                // cos -x = cos x
+                                c = Math.cos(i*_PI/N2); // (_PI * 2 * k)
+                                s = sign*Math.sin(i*_PI/N2); // (_PI * 2 * k)
 
-        private static final int DATA_SIZE = width*height;
-        private static final int LOCAL_SIZE = 4;
+                                // (c+si)*(p+qi) =&gt; (cp-sq, cq+sp)
+                                real = F[i+N2+offset]*c + F[i+N2+1+offset]*s;
+                                imaginary = F[i+N2+1+offset]*c - F[i+N2+offset]*s;
 
-        private static final float[] data = new float[DATA_SIZE &lt;&lt; 1];
-        private static final float[] processed_data = new float[DATA_SIZE &lt;&lt; 1];
+                                System.out.println("pair: "+ (i+offset)/2+"-"+ (i+N2+offset)/2+"        N2: " +N2+ " offset:"+offset + " step:"+step + "        c="+c+" s="+s);
 
-        private static long[] global_work_size = new long[]{width/2,height,1};
-        private static long[] local_work_size = new long[]{1,1,1};
+                                F[i+N2+offset] = F[i+offset] - real;
+                                F[i+N2+1+offset] = F[i+1+offset] - imaginary;
+                                F[i+offset] += real;
+                                F[i+1+offset] += imaginary;
 
-        private static long[] global_work_size_rect = new long[]{width,height,1};
-        private static long[] local_work_size_rect = new long[]{LOCAL_SIZE,LOCAL_SIZE,1};
-
-        private static int log2(int b) {
-                int result = 0;
-                if((b &amp; 0xffff0000) != 0) {
-                        b &gt;&gt;&gt;= 16;
-                        result = 16;
-                }
-                if(b &gt;= 256) {
-                        b &gt;&gt;&gt;= 8;
-                        result += 8;
-                }
-                if(b &gt;= 16) {
-                        b &gt;&gt;&gt;= 4;
-                        result += 4;
-                }
-                if(b &gt;= 4) {
-                        b &gt;&gt;&gt;= 2;
-                        result += 2;
-                }
-                return result + (b &gt;&gt;&gt; 1);
-        }
-        public static void main(String[] args) throws Exception {
-
-                CL.setExceptionsEnabled(true);
-
-                cl_platform_id[] platform = new cl_platform_id[1];
-                cl_device_id[] device = new cl_device_id[1];
-                int[] num_devices = new int[1];
-
-                clGetPlatformIDs(1, platform, null);
-                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, num_devices);
-
-                cl_context_properties props = new cl_context_properties();
-                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
-                context = clCreateContext(props, 1, device, null, null, null);
-
-                queue = clCreateCommandQueue(context, device[0], 0, null);
-
-                StringBuffer sb  = new StringBuffer();
-                URL resource = FFTGPU1D.class.getResource(KERNEL_PATH) ;
-                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
-                Scanner sc = new Scanner(new File(path));
-                while(sc.hasNext()) {
-                        sb.append(sc.nextLine() + "\n");
-                }
-                sc.close();
-                program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
-                StringBuffer op = new StringBuffer();
-                op.append("-Werror -Dsize=");
-                op.append(LOCAL_SIZE);
-                String option = op.toString();
-                clBuildProgram(program, 0, null, option, null, null);
-
-            cl_mem data_mem;
-            cl_mem processed_mem;
-            cl_mem transpose_mem;
-
-                data_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-                                Sizeof.cl_float2 * DATA_SIZE, Pointer.to(data), null);
-
-                processed_mem = clCreateBuffer(context, CL_MEM_USE_HOST_PTR,
-                                Sizeof.cl_float2 * DATA_SIZE, Pointer.to(processed_data), null);
-
-                transpose_mem = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR,
-                                Sizeof.cl_float2 * DATA_SIZE, null, null);
-
-                kernel_init = clCreateKernel(program, KERNEL_INIT, null);
-                kernel_bit_reversal = clCreateKernel(program, KERNEL_BIT_REVERSAL, null);
-                kernel_fft = clCreateKernel(program, KERNEL_FFT, null);
-                kernel_fft_inverse = clCreateKernel(program, KERNEL_FFT_INVERSE, null);
-                kernel_transpose = clCreateKernel(program, KERNEL_TRANSPOSE, null);
-
-                generateSample();
-
-                bit_reverse(data_mem);
-                fft_2d(width, data_mem,processed_mem,1,true);
-
-                transpose(processed_mem, transpose_mem);
-
-                bit_reverse(transpose_mem);
-                fft_2d(height,null,transpose_mem,1,false);
-
-                bit_reverse(transpose_mem);
-                fft_2d(height,null,transpose_mem,-1,false);
-                fft_inverse2d(height,transpose_mem);
-
-                transpose(transpose_mem, processed_mem);
-
-                bit_reverse(processed_mem);
-                fft_2d(width,null,processed_mem,-1,false);
-                fft_inverse2d(width,processed_mem);
-
-                System.out.println("COMPLETE");
-
-                ByteBuffer outBuffer = clEnqueueMapBuffer(queue,
-                                processed_mem,
-                                CL_TRUE,
-                                CL_MAP_WRITE,
-                                0,
-                                Sizeof.cl_float2*width*height,
-                                0,
-                                null,
-                                null,
-                                null);
-
-                clEnqueueUnmapMemObject(queue, processed_mem, outBuffer, 0, null, null);
-                clFinish(queue);
-
-                outBuffer.order(ByteOrder.LITTLE_ENDIAN);
-
-                for(int i = 0; i &lt; width*height*2; i+=2) {
-                        System.out.println(outBuffer.getFloat());
-                        outBuffer.getFloat();
-                }
-
-                clReleaseDevice(device[0]);
-                clReleaseContext(context);
-                clReleaseCommandQueue(queue);
-                clReleaseKernel(kernel_fft);
-                clReleaseKernel(kernel_init);
-                clReleaseProgram(program);
-        }
-
-        private static void generateSample() {
-                for(int i = 0; i &lt; width*height*2; i+=2) {
-                        data[i] = i;
-                        data[i+1] = 0.0f;
-                }
-        }
-
-        private static void transpose(cl_mem input_mem, cl_mem output_mem) {
-
-                int[] widthPtr = new int[1];
-                widthPtr[0]=width;
-                int[] heightPtr = new int[1];
-                heightPtr[0]=height;
-
-                clSetKernelArg(kernel_transpose, 0, Sizeof.cl_mem, Pointer.to(input_mem));
-                clSetKernelArg(kernel_transpose, 1, Sizeof.cl_mem, Pointer.to(output_mem));
-                clSetKernelArg(kernel_transpose, 2, Sizeof.cl_int, Pointer.to(widthPtr));
-                clSetKernelArg(kernel_transpose, 3, Sizeof.cl_int, Pointer.to(heightPtr));
-
-                clEnqueueNDRangeKernel(queue,
-                                kernel_transpose, 2, null,
-                                global_work_size_rect,
-                                local_work_size_rect,
-                                0, null, null);
-        }
-
-        private static void fft_inverse2d(int N, cl_mem inverse_mem) {
-                int[] Ni = new int[1];
-                Ni[0] = N;
-                clSetKernelArg(kernel_fft_inverse, 0, Sizeof.cl_int, Pointer.to(Ni));
-                clSetKernelArg(kernel_fft_inverse, 1, Sizeof.cl_mem, Pointer.to(inverse_mem));
-                clEnqueueNDRangeKernel(queue,
-                                kernel_fft_inverse, 2, null,
-                                global_work_size_rect,
-                                local_work_size,
-                                0, null, null);
-        }
-
-        private static void bit_reverse(cl_mem input_mem) {
-                int N = DATA_SIZE;
-                int[] Ni = new int[1];
-                Ni[0] = N;
-
-                clSetKernelArg(kernel_bit_reversal, 0, Sizeof.cl_mem, Pointer.to(input_mem));
-                clSetKernelArg(kernel_bit_reversal, 1, Sizeof.cl_uint, Pointer.to(Ni));
-
-                clEnqueueNDRangeKernel(queue,
-                                kernel_bit_reversal, 2, null,
-                                global_work_size_rect,
-                                local_work_size,
-                                0, null, null);
-        }
-
-        private static void fft_2d(int N, cl_mem input_mem, cl_mem output_mem, int sign, boolean is_init){
-                int fftSize = 1;
-                int ns = log2(N);
-                int[] fftSizePtr = new int[1];
-
-                int[] signPtr = new int[1];
-                signPtr[0] = sign;
-
-                for(int i = 0; i &lt; ns; i++) {
-                        fftSize &lt;&lt;= 1;
-                        fftSizePtr[0] = fftSize;
-
-                        if(is_init ==  false || fftSize !=2) {
-
-                                clSetKernelArg(kernel_fft, 0, Sizeof.cl_mem, Pointer.to(output_mem));
-                                clSetKernelArg(kernel_fft, 1, Sizeof.cl_uint, Pointer.to(fftSizePtr));
-                                clSetKernelArg(kernel_fft, 2, Sizeof.cl_int, Pointer.to(signPtr));
-
-                                clEnqueueNDRangeKernel(queue,
-                                                kernel_fft, 2, null,
-                                                global_work_size,
-                                                local_work_size,
-                                                0, null, null);
-                        } else {
-                                clSetKernelArg(kernel_init, 0, Sizeof.cl_mem, Pointer.to(input_mem));
-                                clSetKernelArg(kernel_init, 1, Sizeof.cl_mem, Pointer.to(output_mem));
-                                clSetKernelArg(kernel_init, 2, Sizeof.cl_uint, Pointer.to(fftSizePtr));
-
-                                clEnqueueNDRangeKernel(queue,
-                                                kernel_init, 2, null,
-                                                global_work_size,
-                                                local_work_size,
-                                                0, null, null);
                         }
 
+                } else {
+                        F[offset] = data[offset] + data[offset+N2];
+                        F[offset+1] = data[offset+1] + data[offset+N2+1];
+                        F[offset+N2] = data[offset] - data[offset+N2];
+                        F[offset+N2+1] = data[offset+1] - data[offset+N2+1];
+                        System.out.println("pair: "+ (offset)/2+"-"+ (N2+offset)/2+"    N2: " +N2+ " offset:"+offset + " FFT-2 " +F[offset]+"   "+F[offset+N2]);
+                }
+
+        }
+
+        private static void inverse(int N, double[] data, double[] F) {
+                int N2 = N/2;
+                int inverseSign = -1;
+
+                forward(N,0,data,F,inverseSign,0);
+                for(int i = 0; i &lt; N; i+=2) {
+                        F[i] /= N2;
+                        F[i+1] /= N2;
+                }
+
+        }
+
+        private static int reverseBit(int x, int stage) {
+                int b = 0;
+                int bits = stage;
+                while (bits != 0){
+                          b &lt;&lt;=1;
+                          b |=( x &amp;1 );
+                          x &gt;&gt;=1;
+                          bits&gt;&gt;=1;
+                }
+                return b;
+        }
+
+        private static double[] generateData() {
+                double[] sampleData = new double[size*2];
+                for(int i = 2; i &lt; size*2; i+=2) {
+                        sampleData[i] = (double)i/2;
+                        sampleData[i+1] = (double)0.0f;
+                }
+                return sampleData;
+        }
+
+
+        public static void main(String[] args) {
+                double[] data = generateData();
+                double[] F = new double[size*2];
+
+        // データ要素をビット反転して、偶数項・奇数項に分割
+                for(int i = 2; i &lt; size*2; i+=2) {
+                        int rev = reverseBit(i/2,size-1)*2;
+                        if(i &lt; rev) {
+                                System.out.println("i: "+i/2+" rev:"+rev/2);
+                                double tmpR = data[i];
+                                double tmpI = data[i+1];
+                                data[i] = data[rev];
+                                data[i+1] = data[rev+1];
+                                data[rev] = tmpR;
+                                data[rev+1] = tmpI;
+                        }
+                }
+        // 反転後のデータを標準出力に表示
+                for(int i = 0; i&lt; size*2; i++) {
+                        System.out.println(data[i]);
+                }
+
+        // FFTの処理を行います。
+                forward(size*2, 0, data, F, _SIGN, 0);
+        // FFTの計算結果を標準出力に表示
+                for(int i =0; i &lt; size*2; i++)  {
+                        System.out.println(F[i]);
+                }
+
+        // Inverse FFT（逆FFT）をおこない元データを回復します。
+
+        // データ要素をビット反転して、偶数項・奇数項に分割
+                for(int i = 2; i &lt; size*2; i+=2) {
+                        int rev = reverseBit(i/2,size-1) *2;
+                        if(i &lt; rev) {
+                                System.out.println("i: "+i/2+" rev:"+rev/2);
+                                double tmpR = F[i];
+                                double tmpI = F[i+1];
+                                F[i] = F[rev];
+                                F[i+1] = F[rev+1];
+                                F[rev] = tmpR;
+                                F[rev+1] = tmpI;
+                        }
+                }
+                double[] out = new double[size*2];
+        // Inverse FFT（逆FFT）の処理をおこないます。
+                inverse(size*2, F, out);
+        // 回復したデータを標準出力に表示
+                for(int i =0; i &lt; size*2; i++)  {
+                        System.out.println(out[i]);
                 }
         }
 
 }</pre><p>
-</p><p><strong>fft2d.cl. </strong>
-</p><pre xmlns="" class="prettyprint">inline int reverseBit(int x, int stage) {
-        int b = 0;
-        int bits = stage;
-        while (bits != 0){
-                  b &lt;&lt;=1;
-                  b |=( x &amp;1 );
-                  x &gt;&gt;=1;
-                  bits&gt;&gt;=1;
-        }
-        return b;
-}
-
-__kernel void bit_reversal(__global float2* data, uint N) {
-        size_t x = get_global_id(0);
-        size_t row_size = get_global_size(0);
-        size_t y = get_global_id(1);
-        uint rev = reverseBit(x, row_size-1);
-        float2 in1;
-        float2 in2;
-        if(x &lt; rev) {
-                in1 = data[y*row_size + x];
-                in2 = data[y*row_size + rev];
-                printf("x=%d, y=%d, pair: %d - %d, rs = %d, di=%d\n", x, y, x, rev, row_size,y*row_size + x);
-                data[y*row_size + rev] = in1;
-                data[y*row_size + x] = in2;
-        }
-}
-
-__kernel void fft_init(
-                __global float2* data,
-                __global float2* F,
-                int N)
-{
-        int x = get_global_id(0);
-        int row_size = get_global_size(0)*2;
-        int y = get_global_id(1);
-        int stride = N/2;
-        float floor_adjust = x/stride;
-        int index = ceil(floor_adjust)*stride + (x%row_size);
-
-        float2 in0, in1;
-
-        in0 = data[y*row_size + index];
-        in1 = data[y*row_size + index+stride];
-
-        float2 v0;
-        v0 = in0;
-        in0 = v0 + in1;
-        in1 = v0 - in1;
-
-        F[y*row_size + index] = in0;
-        F[y*row_size + index + stride] = in1;
-
-        //printf("x=%d, y=%d, rs=%d, di=%d, pair: %d - %d, N = %d, s = %d, in0:in1 = %f:%f\n", x,y,row_size,y*row_size + index, index, index+stride, N, stride, F[y*row_size + index].x, F[y*row_size + index+stride].x);
-
-}
-
-
-__kernel void fft2d(
-                __global float2* F,
-                int N,
-                int sign)
-{
-        int x = get_global_id(0);
-        int row_size = get_global_size(0)*2;
-        int y = get_global_id(1);
-        int stride = N/2;
-        float floor_adjust = x/stride;
-        int index = ceil(floor_adjust)*stride + (x%row_size);
-
-        float2 in0, in1;
-
-        in0 = F[y*row_size + index];
-        in1 = F[y*row_size + index+stride];
-
-        float angle = -2*M_PI_F*(index)/N;
-
-        float c,s;
-        float2 v;
-        float2 tmp0;
-
-        c = native_cos(angle);
-        s = sign*native_sin(angle);
-
-        v.x = c * (in1.x) - s * in1.y;
-        v.y = c * (in1.y) + s * in1.x;
-
-        tmp0 = in0;
-
-        in0 = tmp0 + v;
-        in1 = tmp0 - v;
-
-        F[y*row_size + index] = in0;
-        F[y*row_size + index + stride] = in1;
-
-        //printf("x=%d, y=%d, pair: %d - %d, N = %d, s = %d, sign = %d c:s = %f:%f\n in0:in1 = %f:%f\n", x,y, y*row_size + index, y*row_size + index+stride, N, stride, sign, c, s, F[y*row_size + index].x, F[y*row_size + index+stride].x);
-
-}
-
-__kernel void fft_inverse2d(int N, __global float2* F) {
-        size_t x = get_global_id(0);
-        size_t row_size = get_global_size(0);
-        size_t y = get_global_id(1);
-        F[y*row_size + x] /= N;
-        //printf("di=%d, F[]=%f\n",y*row_size + x,F[y*row_size + x].x);
-}
-
-__kernel void transpose(
-                         __global float2* input,
-                         __global float2* output,
-                         size_t width,
-                         size_t height)
-{
-
-        __local float2 tile[size * (size+1)];
-        size_t x = get_global_id(0);
-        size_t y = get_global_id(1);
-
-        size_t lx = get_local_id(0);
-        size_t ly = get_local_id(1);
-
-        size_t gx = get_group_id(0);
-        size_t gy = get_group_id(1);
-
-        size_t index_input = y * width + x;
-    size_t index_tile = ly * (size+1) + lx;
-    tile[index_tile]=  input[index_input];
-        barrier(CLK_LOCAL_MEM_FENCE);
-
-        size_t ox = gy * size + lx;
-        size_t oy = gx * size + ly;
-
-        size_t index_output = oy * height + ox;
-        index_tile = lx * (size+1) + ly;
-    output[index_output] = tile[index_tile];
-    //printf("output[%d %d %d %d]=%f, index_tile=%d, index_out=%d\n",x,y,gx,gy,output[index_output].x, index_tile, index_output);
-
-}</pre><p>
-</p></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch12s04.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch12.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch12s06.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+</p><p>上記のソースコードは経過を標準出力に表示させます。初めの出力は以下の行です。</p><p><strong>FFT1D経過：ビット反転. </strong>
+</p><pre xmlns="" class="prettyprint">i: 1 rev:4
+i: 3 rev:6
+0.0
+0.0
+4.0
+0.0
+2.0
+0.0
+6.0
+0.0
+1.0
+0.0
+5.0
+0.0
+3.0
+0.0
+7.0
+0.0</pre><p>
+</p><p>まずデータとなる配列は「0, 1, 2, 3, 4, 5, 6, 7」となります。その上で、ビット反転をした要素は「1-4、3-6」となります。</p><p>ビットの反転後に配列は、「0,4,2,6」と「1,3,5,7」となり、前半を偶数、後半を奇数に分けています。</p><p>ビット反転についてはアルゴリズムが多くありますが前の項目で解説した方式で算出します。</p><p>次に高速フーリエ変換のメインのアルゴリズム部分についてですが、再帰を使うため、順序は「0-1、2-3、4-5、6-7」ではなく、「0-1、2-3、0-2、1-3」と、初めのステップ内のベースの計算が終わると次のステップに移りますが、計算上は変わりません。</p><p><strong>FFT1D（変換時パラメータ：pairは処理点、N2は処理しているデータサイズ、cはcos、sはsinの値を示します。stepはアルゴリズムのステップに該当します。）. </strong>
+</p><pre xmlns="" class="prettyprint">pair: 0-1       N2: 2 offset:0 FFT-2 4.0        -4.0
+pair: 2-3       N2: 2 offset:4 FFT-2 8.0        -4.0
+pair: 0-2       N2: 4 offset:0 step:2   c=1.0 s=0.0
+pair: 1-3       N2: 4 offset:0 step:2   c=6.123233995736766E-17 s=1.0
+pair: 4-5       N2: 2 offset:8 FFT-2 6.0        -4.0
+pair: 6-7       N2: 2 offset:12 FFT-2 10.0      -4.0
+pair: 4-6       N2: 4 offset:8 step:2   c=1.0 s=0.0
+pair: 5-7       N2: 4 offset:8 step:2   c=6.123233995736766E-17 s=1.0
+pair: 0-4       N2: 8 offset:0 step:1   c=1.0 s=0.0
+pair: 1-5       N2: 8 offset:0 step:1   c=0.7071067811865476 s=0.7071067811865475
+pair: 2-6       N2: 8 offset:0 step:1   c=6.123233995736766E-17 s=1.0
+pair: 3-7       N2: 8 offset:0 step:1   c=-0.7071067811865475 s=0.7071067811865476</pre><p>
+</p><p>上記の算出からのFFTの計算結果は以下のようになります。</p><p><strong>FFT1D経過（変換した配列）. </strong>
+</p><pre xmlns="" class="prettyprint">28.0
+0.0
+-4.0
+9.65685424949238
+-4.0
+4.0
+-4.0
+1.6568542494923797
+-4.0
+0.0
+-3.9999999999999996
+-1.6568542494923797
+-3.9999999999999996
+-4.0
+-3.9999999999999987
+-9.65685424949238</pre><p>
+</p><p>次ぎにこの変換配列を、元のデータに巻き戻します。つまり逆変換(Inverse FFT)をします。</p><p>逆変換の前にビット変換を行います。逆変換の手順は以下のように、通常の変換とほぼ同じ手順を取ります。大きな相違点としてはsin関数の符号となります。</p><pre xmlns="" class="prettyprint">i: 1 rev:4
+i: 3 rev:6
+pair: 0-1       N2: 2 offset:0 FFT-2 24.0       32.0
+pair: 2-3       N2: 2 offset:4 FFT-2 -8.0       -4.440892098500626E-16
+pair: 0-2       N2: 4 offset:0 step:2   c=1.0 s=-0.0
+pair: 1-3       N2: 4 offset:0 step:2   c=6.123233995736766E-17 s=-1.0
+pair: 4-5       N2: 2 offset:8 FFT-2 -8.0       -4.440892098500626E-16
+pair: 6-7       N2: 2 offset:12 FFT-2 -7.999999999999998        -1.3322676295501878E-15
+pair: 4-6       N2: 4 offset:8 step:2   c=1.0 s=-0.0
+pair: 5-7       N2: 4 offset:8 step:2   c=6.123233995736766E-17 s=-1.0
+pair: 0-4       N2: 8 offset:0 step:1   c=1.0 s=-0.0
+pair: 1-5       N2: 8 offset:0 step:1   c=0.7071067811865476 s=-0.7071067811865475
+pair: 2-6       N2: 8 offset:0 step:1   c=6.123233995736766E-17 s=-1.0
+pair: 3-7       N2: 8 offset:0 step:1   c=-0.7071067811865475 s=-0.7071067811865476</pre><p>最後に逆フーリエ変換（Inverse FFT）の結果を見てみましょう。</p><pre xmlns="" class="prettyprint">2.220446049250313E-16
+0.0
+1.0000000000000002
+2.2776579365114115E-16
+2.0
+-9.957992501029599E-17
+3.0
+2.1632341619892146E-16
+4.0
+0.0
+5.0
+-2.1632341619892146E-16
+6.0
+9.957992501029599E-17
+7.0
+-2.2776579365114115E-16</pre><p>入力した観測値通りの値が戻ったことが確認できました。</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch12s04.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch12.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch12s06.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>

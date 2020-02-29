@@ -1,0 +1,652 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>15.9. 実装例（GPU）</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch15.html" title="第15章 基数整列" /><link rel="prev" href="ch15s08.html" title="15.8. 実装例（CPU）" /><link rel="next" href="ch16.html" title="第16章 参考書籍とWebリソース" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+    window.addEventListener("load", function() {
+      PR.prettyPrint();
+	  });	
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch15s08.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch16.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_実装例_gpu_2"></a>15.9. 実装例（GPU）</h2></div></div></div><p>GPUでの基数整列の実装については、既に解説しており極力忠実にコードに落としていきます。</p><p>この実装では、4つの整数を要素にもつ配列を整列するため、ベクトル型であるuint4の配列に元データを記憶します。</p><p>ただしuint4にした場合、アルゴリズムが右側の要素（列）から左に一つ一つ走査する場合は、動的に要素にアクセスしなくてはなりません。そのため要素アクセスのためのget_element関数（下記）が必要となります。</p><pre xmlns="" class="prettyprint">inline uint get_element(uint4 data, int idx, __constant uint4* mask) {
+        uint result;
+        uint4 mask_data = data &amp; mask[idx];
+        result = mask_data.s0 + mask_data.s1 + mask_data.s2 + mask_data.s3;
+        return result;
+}</pre><p>このインライン関数は32bitのmaskと、指定した添字の変数idxを元に、ベクトルから該当する値を抽出します。</p><p>このget_elementを使って元データのdata変数の値を取り出して、ヒストグラムを計算するのがaccumulatorカーネル関数です。</p><pre xmlns="" class="prettyprint">__kernel void accumulator(
+                __global const uint4* data,
+                uint index,
+                __constant uint4* mask,
+                __local uint* shmem,
+                __global uint* results)
+{
+        size_t gid = get_global_id(0);
+        uint pos = get_element(data[gid],index,mask);
+        atomic_inc(&amp;results[pos]);
+}</pre><p>この関数はアトミック関数を使ってresults配列にたいして単純にインクリメントをします。</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_up_sweep_gpu"></a>15.9.1. Up-sweep(GPU)</h3></div></div></div><p>up_sweepカーネル関数は既出ですが以下の擬似コードに沿って実装します。</p><div class="informalfigure"><div class="mediaobject"><img src="radix-algorithm-up-sweep.png" alt="radix-algorithm-up-sweep.png" /></div></div><p>このアルゴリズムの反復部分は全てホスト側でおこなっているため、デバイス側（カーネル関数）では、xの更新のみを行います。</p><p><strong>up_sweepカーネル関数. </strong>
+</p><pre xmlns="" class="prettyprint">__kernel void up_sweep(
+                __global uint* count,
+                uint stage)
+{
+        uint gid = get_global_id(0);
+        uint offset = gid * (2 &lt;&lt; (stage));
+        uint left_stride = (2 &lt;&lt; (stage)) &gt;&gt; 1;
+        uint right_stride = left_stride &lt;&lt; 1;
+        count[offset+right_stride-1] = count[offset+left_stride-1] + count[offset+right_stride-1];
+}</pre><p>
+</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_down_sweep"></a>15.9.2. down-sweep</h3></div></div></div><p>down_sweepカーネル関数は既出ですが以下の擬似コードに沿って実装します。</p><div class="informalfigure"><div class="mediaobject"><img src="radix-algorithm-down-sweep.png" alt="radix-algorithm-down-sweep.png" /></div></div><p>up-sweepと同様にループの箇所はホスト側でまわしているため、ループの中の更新箇所（tmpとx）の計算を行います。</p><pre xmlns="" class="prettyprint">__kernel void down_sweep(
+                __global uint* count,
+                const uint stage)
+{
+        uint gid = get_global_id(0);
+        uint offset = gid * (2 &lt;&lt; (stage));
+        uint left_stride = (2 &lt;&lt; stage) &gt;&gt; 1;
+        uint right_stride = left_stride &lt;&lt; 1;
+        uchar tmp = count[offset+left_stride-1];
+        count[offset+left_stride-1] = count[offset+right_stride-1];
+        count[offset+right_stride-1] = tmp + count[offset+right_stride-1];
+}</pre></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_並び替え_rearrange"></a>15.9.3. 並び替え（rearrange）</h3></div></div></div><p>配列の並び替えは単純にシーケンシャルな計算をします。CPU実装例と同じなので確認してみてください。この実装例ではGPUで処理をさせていますが、CPUのほうが高速で処理できます。</p><p><strong>rearrangeカーネル関数. </strong>
+</p><pre xmlns="" class="prettyprint">__kernel void rearrange(
+                __global uint4* data,
+                __global uint* count,
+                uint index,
+                __constant uint4* mask,
+                __global uint4* result)
+{
+        for(int i = 0; i &lt; SIZE; i++) {
+                uint pos = get_element(data[i],index,mask);
+                result[count[pos]++] = data[i];
+        }
+}</pre><p>
+</p><p><strong>LSDSortGPU.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.reduction;
+
+import static org.jocl.CL.*;
+
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.Scanner;
+
+import org.jocl.CL;
+import org.jocl.Pointer;
+import org.jocl.Sizeof;
+import org.jocl.cl_command_queue;
+import org.jocl.cl_context;
+import org.jocl.cl_context_properties;
+import org.jocl.cl_device_id;
+import org.jocl.cl_kernel;
+import org.jocl.cl_mem;
+import org.jocl.cl_platform_id;
+import org.jocl.cl_program;
+
+public class LSDSortGPU {
+
+        private static final String KERNEL_LSD_HISTOGRAM = "accumulator";
+        private static final String KERNEL_LSD_PATH = "lsd.cl";
+        private static final String KERNEL_LSD_UP = "up_sweep";
+        private static final String KERNEL_LSD_DOWN = "down_sweep";
+        private static final String KERNEL_LSD_REARRANGE = "rearrange";
+        private static final int BIN_SIZE = 32;
+        private static final int WORDS = 4;
+        private static final int DATA_SIZE = 16; // 4-vector conversion... 256*128*8=262144
+        private static int[] data = new int[DATA_SIZE*WORDS];
+
+        private static final int[] masks = new int[] {
+                    0xffffffff, 0, 0, 0,
+                    0, 0xffffffff, 0, 0,
+                    0, 0, 0xffffffff, 0,
+                    0, 0, 0, 0xffffffff
+        };
+
+    private static cl_context context;
+    private static cl_command_queue queue;
+    private static cl_program program;
+
+    private static cl_kernel kernel_histogram;
+    private static cl_kernel kernel_up;
+    private static cl_kernel kernel_down;
+    private static cl_kernel kernel_rearrange;
+
+        public static void main(String[] args) throws Exception {
+
+                CL.setExceptionsEnabled(true);
+
+                cl_platform_id[] platform = new cl_platform_id[1];
+                cl_device_id[] device = new cl_device_id[1];
+                int[] num_devices = new int[1];
+
+                clGetPlatformIDs(1, platform, null);
+                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, num_devices);
+
+                cl_context_properties props = new cl_context_properties();
+                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
+                context = clCreateContext(props, 1, device, null, null, null);
+
+                queue = clCreateCommandQueue(context, device[0], 0, null);
+
+                StringBuffer sb  = new StringBuffer();
+                URL resource = LSDSortGPU.class.getResource(KERNEL_LSD_PATH) ;
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                Scanner sc = new Scanner(new File(path));
+                while(sc.hasNext()) {
+                        sb.append(sc.nextLine() + "\n");
+                }
+                sc.close();
+                program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
+                String option = "-Werror -DSIZE=";
+                StringBuffer opbuf = new StringBuffer();
+                opbuf.append(option);
+                opbuf.append(DATA_SIZE);
+                clBuildProgram(program, 0, null, opbuf.toString(), null, null);
+
+                cl_mem mask_mem = clCreateBuffer(context,
+                                CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_uint4*4,
+                                Pointer.to(masks), null);
+
+                kernel_histogram = clCreateKernel(program, KERNEL_LSD_HISTOGRAM, null);
+                kernel_up = clCreateKernel(program, KERNEL_LSD_UP, null);
+                kernel_down = clCreateKernel(program, KERNEL_LSD_DOWN, null);
+                kernel_rearrange = clCreateKernel(program, KERNEL_LSD_REARRANGE, null);
+
+                generateSample();
+
+                int[] result = new int[DATA_SIZE*WORDS];
+
+                cl_mem data_mem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_uint4 * DATA_SIZE, Pointer.to(data), null);
+
+                for(int w = WORDS-1; w &gt;= 0; w--) {
+                        System.out.println(w);
+                        cl_mem out_mem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+                                        Sizeof.cl_uint4* DATA_SIZE, Pointer.to(result), null);
+
+                        cl_mem count_mem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
+                                        Sizeof.cl_uint*(BIN_SIZE+1), null, null);
+
+                        clSetKernelArg(kernel_histogram, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                        clSetKernelArg(kernel_histogram, 1, Sizeof.cl_uint, Pointer.to(new int[]{w}));
+                        clSetKernelArg(kernel_histogram, 2, Sizeof.cl_mem, Pointer.to(mask_mem));
+                        clSetKernelArg(kernel_histogram, 3, Sizeof.cl_uint *BIN_SIZE, null);
+                        clSetKernelArg(kernel_histogram, 4, Sizeof.cl_mem, Pointer.to(count_mem));
+
+                        long[] gws_histogram = new long[]{DATA_SIZE,1,1};
+                        long[] lws_histogram = new long[]{1,1,1};
+                        clEnqueueNDRangeKernel(queue, kernel_histogram, 1, null,
+                                        gws_histogram,
+                                        lws_histogram,
+                                        0, null, null);
+
+                        int ns = log2(BIN_SIZE);
+                        long gws = 0;
+                        for(int stage=0; stage &lt; ns; stage++) {
+                                gws = (long) (BIN_SIZE / (2 &lt;&lt; (stage)));
+                                //System.out.println(gws+" "+d);
+                                if( gws &gt; 0) {
+                                        clSetKernelArg(kernel_up, 0, Sizeof.cl_mem, Pointer.to(count_mem));
+                                        clSetKernelArg(kernel_up, 1, Sizeof.cl_uint, Pointer.to(new int[]{stage}) );
+                                        clEnqueueNDRangeKernel(queue, kernel_up, 1, null,
+                                                        new long[]{gws},
+                                                        new long[]{1},
+                                                        0, null, null);
+                                }
+                        }
+
+                        int[] count = new int[BIN_SIZE+1];
+
+                        clEnqueueReadBuffer(queue, count_mem, CL_TRUE, 0,
+                                        Sizeof.cl_uint*(BIN_SIZE+1), Pointer.to(count), 0, null, null);
+
+                        for(int s = 0; s &lt; BIN_SIZE+1; s++)
+                                System.out.println("UP: "+count[s]);
+
+                        count[BIN_SIZE] = count[BIN_SIZE-1];
+                        count[BIN_SIZE-1] = 0;
+
+                        clEnqueueWriteBuffer(queue, count_mem, CL_TRUE, 0,
+                                        Sizeof.cl_uint*(BIN_SIZE+1), Pointer.to(count), 0, null, null);
+
+                        for(int d=ns-1; d &gt;= 0; d--) {
+                                gws = (long) (BIN_SIZE / (2 &lt;&lt; (d)));
+                                //System.out.println(gws+" "+d);
+                                if( gws &gt; 0) {
+                                        clSetKernelArg(kernel_down, 0, Sizeof.cl_mem, Pointer.to(count_mem));
+                                        clSetKernelArg(kernel_down, 1, Sizeof.cl_uint, Pointer.to(new int[]{d}) );
+                                        clEnqueueNDRangeKernel(
+                                                        queue,
+                                                        kernel_down, 1, null,
+                                                        new long[]{gws},
+                                                        new long[]{1},
+                                                        0, null, null);
+                                }
+                        }
+
+                        clSetKernelArg(kernel_rearrange, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                        clSetKernelArg(kernel_rearrange, 1, Sizeof.cl_mem, Pointer.to(count_mem));
+                        clSetKernelArg(kernel_rearrange, 2, Sizeof.cl_uint, Pointer.to(new int[]{w}));
+                        clSetKernelArg(kernel_rearrange, 3, Sizeof.cl_mem, Pointer.to(mask_mem));
+                        clSetKernelArg(kernel_rearrange, 4, Sizeof.cl_mem, Pointer.to(out_mem) );
+                        clEnqueueTask(queue, kernel_rearrange, 0, null, null);
+
+                        clEnqueueCopyBuffer(queue,
+                                        out_mem,
+                                        data_mem, 0, 0,
+                                        Sizeof.cl_mem, 0, null, null);
+
+                        clEnqueueReadBuffer(queue, out_mem, CL_TRUE, 0,
+                                        Sizeof.cl_uint*DATA_SIZE*WORDS, Pointer.to(data), 0, null, null);
+
+                        for(int l = 0; l &lt; DATA_SIZE*WORDS; l+=4) {
+                                System.out.println("OUT: "+data[l]+data[l+1]+data[l+2]+data[l+3]);
+                        }
+
+                        clReleaseMemObject(out_mem);
+                        clReleaseMemObject(count_mem);
+                }
+
+                int[] a = new int[WORDS*DATA_SIZE];
+
+                clEnqueueReadBuffer(queue, data_mem,
+                                CL_TRUE, 0,
+                                Sizeof.cl_uint*DATA_SIZE*WORDS,
+                                Pointer.to(a), 0, null, null);
+
+                clFinish(queue);
+
+                for(int l = 0; l &lt; DATA_SIZE*WORDS; l+=WORDS) {
+                        System.out.println("FINAL OUT: "+a[l]+a[l+1]+a[l+2]+a[l+3]);
+                }
+
+        }
+
+        private static void generateSample() {
+                int[] tmp = new int[] {
+                                1,4,5,0,
+                                1,2,2,0,
+                                1,3,2,1,
+                                1,3,2,4,
+                                1,3,2,6,
+                                7,2,1,0,
+                                1,4,5,3,
+                                1,2,1,0,
+                                2,4,5,0,
+                                2,2,2,0,
+                                2,3,2,1,
+                                2,3,2,4,
+                                7,3,2,6,
+                                7,2,1,0,
+                                7,4,5,3,
+                                1,2,1,0
+                };
+                data = tmp;
+        }
+        private static int log2(int b) {
+                int result = 0;
+                if((b &amp; 0xffff0000) != 0) {
+                        b &gt;&gt;&gt;= 16;
+                        result = 16;
+                }
+                if(b &gt;= 256) {
+                        b &gt;&gt;&gt;= 8;
+                        result += 8;
+                }
+                if(b &gt;= 16) {
+                        b &gt;&gt;&gt;= 4;
+                        result += 4;
+                }
+                if(b &gt;= 4) {
+                        b &gt;&gt;&gt;= 2;
+                        result += 2;
+                }
+                return result + (b &gt;&gt;&gt; 1);
+        }
+}</pre><p>
+</p><p><strong>lsd.cl. </strong>
+</p><pre xmlns="" class="prettyprint">inline uint get_element(uint4 data, int idx, __constant uint4* mask) {
+        uint result;
+        uint4 mask_data = data &amp; mask[idx];
+        result = mask_data.s0 + mask_data.s1 + mask_data.s2 + mask_data.s3;
+        return result;
+}
+
+__kernel void down_sweep(
+                __global uint* count,
+                const uint stage)
+{
+        uint gid = get_global_id(0);
+        uint offset = gid * (2 &lt;&lt; (stage));
+        uint left_stride = (2 &lt;&lt; stage) &gt;&gt; 1;
+        uint right_stride = left_stride &lt;&lt; 1;
+        uchar tmp = count[offset+left_stride-1];
+        count[offset+left_stride-1] = count[offset+right_stride-1];
+        count[offset+right_stride-1] = tmp + count[offset+right_stride-1];
+        printf("DOWN  gid: %d, count[%d] = %d, count[%d]: %d\n",gid,offset+right_stride-1,count[offset+right_stride-1],offset+left_stride-1,count[offset+left_stride-1]);
+}
+
+__kernel void up_sweep(
+                __global uint* count,
+                uint stage)
+{
+        uint gid = get_global_id(0);
+        uint offset = gid * (2 &lt;&lt; (stage));
+        uint left_stride = (2 &lt;&lt; (stage)) &gt;&gt; 1;
+        uint right_stride = left_stride &lt;&lt; 1;
+        count[offset+right_stride-1] = count[offset+left_stride-1] + count[offset+right_stride-1];
+        printf("UP gid: %d, count[%d]: %d, count[%d]: %d\n",gid,offset+right_stride-1,count[offset+right_stride-1],offset+left_stride-1,count[offset+left_stride-1]);
+}
+
+__kernel void rearrange(
+                __global uint4* data,
+                __global uint* count,
+                //__global uint* idx,
+                uint index,
+                __constant uint4* mask,
+                __global uint4* result)
+{
+        for(int i = 0; i &lt; SIZE; i++) {
+                uint pos = get_element(data[i],index,mask);
+                result[count[pos]++] = data[i];
+        }
+        //printf("pos=%d, gid=%d, data=%v4d\n",pos, gid, data[gid]);
+}
+
+
+__kernel void accumulator(
+                __global const uint4* data,
+                uint index,
+                __constant uint4* mask,
+                __local uint* shmem,
+                __global uint* results)
+{
+        size_t gid = get_global_id(0);
+        uint pos = get_element(data[gid],index,mask);
+        atomic_inc(&amp;results[pos]);
+}</pre><p>
+</p><p><strong>出力. </strong>
+</p><pre xmlns="" class="prettyprint">FINAL OUT: 1210
+FINAL OUT: 1210
+FINAL OUT: 1220
+FINAL OUT: 1321
+FINAL OUT: 1324
+FINAL OUT: 1326
+FINAL OUT: 1450
+FINAL OUT: 1453
+FINAL OUT: 2220
+FINAL OUT: 2321
+FINAL OUT: 2324
+FINAL OUT: 2450
+FINAL OUT: 7210
+FINAL OUT: 7210
+FINAL OUT: 7326
+FINAL OUT: 7453</pre><p>
+</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a id="_マルチキュー実装_cpu_gpu"></a>15.9.4. マルチキュー実装（CPU+GPU）</h3></div></div></div><div class="warning" style="margin-left: 0; margin-right: 10%;"><h3 class="title">警告</h3><p>この項目ではCPUとGPUの連携をします。APUやiGPUとCPUが想定される実行環境であり、外部GPUデバイスとCPUのシステム構成で実装するとパフォーマンスを低下させる可能性があるので注意してください。</p></div><p>本書で提示した基数整列の実装アルゴリズムのうち並び替え（Rank）部分はシーケンシャルな処理をしています。そのためシーケンシャルな処理が得意なCPUで処理をするほうが効率的となります。</p><p>マルチキュー実装では、一つのコンテキストに複数のコマンドキュー
+を作り、カーネルの実行時にコマンドキューを使い分けます。各コマンドキューにはCPU、GPU等の処理デバイスを指定します。これにより、カーネルコマンドをキューに挿入する際に、どのキューにいれるかを指定するかによってデバイスを切り替えることが可能となります。</p><p><a id="multi-queue-radix-sort"></a><strong>LSDSortGPUCPU.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.reduction;
+
+import static org.jocl.CL.*;
+
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.Scanner;
+
+import org.jocl.CL;
+import org.jocl.Pointer;
+import org.jocl.Sizeof;
+import org.jocl.cl_command_queue;
+import org.jocl.cl_context;
+import org.jocl.cl_context_properties;
+import org.jocl.cl_device_id;
+import org.jocl.cl_kernel;
+import org.jocl.cl_mem;
+import org.jocl.cl_platform_id;
+import org.jocl.cl_program;
+
+public class LSDSortGPUCPU {
+
+        private static final String KERNEL_LSD_PATH = "lsd.cl";
+        private static final String KERNEL_LSD_HISTOGRAM = "accumulator";
+        private static final String KERNEL_LSD_UP = "up_sweep";
+        private static final String KERNEL_LSD_DOWN = "down_sweep";
+        private static final String KERNEL_LSD_REARRANGE = "rearrange";
+        private static final int BIN_SIZE = 32;
+        private static final int WORDS = 4;
+        private static final int DATA_SIZE = 16;
+        private static int[] data = new int[DATA_SIZE*WORDS];
+
+        private static final int[] masks = new int[] {
+                    0xffffffff, 0, 0, 0,
+                    0, 0xffffffff, 0, 0,
+                    0, 0, 0xffffffff, 0,
+                    0, 0, 0, 0xffffffff
+        };
+
+    private static cl_context context;
+    private static cl_command_queue gpu_queue;
+    private static cl_command_queue cpu_queue;
+    private static cl_program program;
+
+    private static cl_kernel kernel_histogram;
+    private static cl_kernel kernel_up;
+    private static cl_kernel kernel_down;
+    private static cl_kernel kernel_rearrange;
+
+        public static void main(String[] args) throws Exception {
+
+                CL.setExceptionsEnabled(true);
+
+                cl_platform_id[] platform = new cl_platform_id[1];
+                cl_device_id[] gpu_device = new cl_device_id[1];
+                cl_device_id[] cpu_device = new cl_device_id[1];
+                int[] num_devices = new int[1];
+
+                clGetPlatformIDs(1, platform, null);
+                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, gpu_device, num_devices); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-1"></a>(1)
+                clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_CPU, 1, cpu_device, num_devices); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-2"></a>(2)
+
+                cl_device_id[] devices = new cl_device_id[] {gpu_device[0] , cpu_device[0]}; //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-3"></a>(3)
+
+                cl_context_properties props = new cl_context_properties();
+                props.addProperty(CL_CONTEXT_PLATFORM, platform[0]);
+                context = clCreateContext(props, 2, devices, null, null, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-4"></a>(4)
+
+                gpu_queue = clCreateCommandQueue(context, devices[0], 0, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-5"></a>(5)
+                cpu_queue = clCreateCommandQueue(context, devices[1], 0, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-6"></a>(6)
+
+                StringBuffer sb  = new StringBuffer();
+                URL resource = LSDSortGPUCPU.class.getResource(KERNEL_LSD_PATH) ;
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                Scanner sc = new Scanner(new File(path));
+                while(sc.hasNext()) {
+                        sb.append(sc.nextLine() + "\n");
+                }
+                sc.close();
+                program = clCreateProgramWithSource(context, 1, new String[] {sb.toString()}, null, null);
+                String option = "-Werror -DSIZE=";
+                StringBuffer opbuf = new StringBuffer();
+                opbuf.append(option);
+                opbuf.append(DATA_SIZE);
+                clBuildProgram(program, 2, devices, opbuf.toString(), null, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-7"></a>(7)
+
+                cl_mem mask_mem = clCreateBuffer(context,
+                                CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_uint4*4,
+                                Pointer.to(masks), null);
+
+                kernel_histogram = clCreateKernel(program, KERNEL_LSD_HISTOGRAM, null);
+                kernel_up = clCreateKernel(program, KERNEL_LSD_UP, null);
+                kernel_down = clCreateKernel(program, KERNEL_LSD_DOWN, null);
+                kernel_rearrange = clCreateKernel(program, KERNEL_LSD_REARRANGE, null);
+
+                generateSample();
+
+                int[] result = new int[DATA_SIZE*WORDS];
+
+                cl_mem data_mem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_uint4 * DATA_SIZE, Pointer.to(data), null);
+
+                for(int w = WORDS-1; w &gt;= 0; w--) {
+
+                        cl_mem out_mem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+                                        Sizeof.cl_uint4* DATA_SIZE, Pointer.to(result), null);
+
+                        cl_mem count_mem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
+                                        Sizeof.cl_uint*(BIN_SIZE+1), null, null);
+
+                        clSetKernelArg(kernel_histogram, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                        clSetKernelArg(kernel_histogram, 1, Sizeof.cl_uint, Pointer.to(new int[]{w}));
+                        clSetKernelArg(kernel_histogram, 2, Sizeof.cl_mem, Pointer.to(mask_mem));
+                        clSetKernelArg(kernel_histogram, 3, Sizeof.cl_uint *BIN_SIZE, null);
+                        clSetKernelArg(kernel_histogram, 4, Sizeof.cl_mem, Pointer.to(count_mem));
+
+                        clEnqueueNDRangeKernel(gpu_queue, kernel_histogram, 1, null,
+                                        new long[]{DATA_SIZE},
+                                        new long[]{1},
+                                        0, null, null);
+
+                        int ns = log2(BIN_SIZE);
+                        long gws = 0;
+                        for(int stage=0; stage &lt; ns; stage++) {
+                                gws = (long) (BIN_SIZE / (2 &lt;&lt; (stage)));
+                                if( gws &gt; 0) {
+                                        clSetKernelArg(kernel_up, 0, Sizeof.cl_mem, Pointer.to(count_mem));
+                                        clSetKernelArg(kernel_up, 1, Sizeof.cl_uint, Pointer.to(new int[]{stage}) );
+                                        clEnqueueNDRangeKernel(gpu_queue, kernel_up, 1, null,
+                                                        new long[]{gws},
+                                                        new long[]{1},
+                                                        0, null, null);
+                                }
+                        }
+
+                        int[] count = new int[BIN_SIZE+1];
+
+                        clEnqueueReadBuffer(gpu_queue, count_mem, CL_TRUE, 0,
+                                        Sizeof.cl_uint*(BIN_SIZE+1),
+                                        Pointer.to(count), 0, null, null);
+
+                        for(int s = 0; s &lt; BIN_SIZE+1; s++)
+                                System.out.println("UP: "+count[s]);
+
+                        count[BIN_SIZE] = count[BIN_SIZE-1];
+                        count[BIN_SIZE-1] = 0;
+
+                        clEnqueueWriteBuffer(gpu_queue, count_mem, CL_TRUE, 0,
+                                        Sizeof.cl_uint*(BIN_SIZE+1),
+                                        Pointer.to(count), 0, null, null);
+
+                        for(int d=ns-1; d &gt;= 0; d--) {
+                                gws = (long) (BIN_SIZE / (2 &lt;&lt; (d)));
+                                if( gws &gt; 0) {
+                                        clSetKernelArg(kernel_down, 0, Sizeof.cl_mem, Pointer.to(count_mem));
+                                        clSetKernelArg(kernel_down, 1, Sizeof.cl_uint, Pointer.to(new int[]{d}) );
+                                        clEnqueueNDRangeKernel(
+                                                        gpu_queue,
+                                                        kernel_down, 1, null,
+                                                        new long[]{gws},
+                                                        new long[]{1},
+                                                        0, null, null);
+                                }
+                        }
+
+                        clFlush(gpu_queue); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-8"></a>(8)
+
+                        clSetKernelArg(kernel_rearrange, 0, Sizeof.cl_mem, Pointer.to(data_mem));
+                        clSetKernelArg(kernel_rearrange, 1, Sizeof.cl_mem, Pointer.to(count_mem));
+                        clSetKernelArg(kernel_rearrange, 2, Sizeof.cl_uint, Pointer.to(new int[]{w}));
+                        clSetKernelArg(kernel_rearrange, 3, Sizeof.cl_mem, Pointer.to(mask_mem));
+                        clSetKernelArg(kernel_rearrange, 4, Sizeof.cl_mem, Pointer.to(out_mem) );
+                        clEnqueueTask(cpu_queue, kernel_rearrange, 0, null, null); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-9"></a>(9)
+
+                        clFlush(cpu_queue); //<a xmlns="http://www.w3.org/1999/xhtml" id="CO120-10"></a>(10)
+
+                        clEnqueueCopyBuffer(gpu_queue,
+                                        out_mem,
+                                        data_mem, 0, 0,
+                                        Sizeof.cl_mem, 0, null, null);
+
+                        clEnqueueReadBuffer(gpu_queue, out_mem, CL_TRUE, 0,
+                                        Sizeof.cl_uint*DATA_SIZE*WORDS, Pointer.to(data), 0, null, null);
+
+                        for(int l = 0; l &lt; DATA_SIZE*WORDS; l+=4) {
+                                System.out.println("OUT: "+data[l]+data[l+1]+data[l+2]+data[l+3]);
+                        }
+
+                        clReleaseMemObject(out_mem);
+                        clReleaseMemObject(count_mem);
+                }
+
+                int[] a = new int[WORDS*DATA_SIZE];
+
+                clEnqueueReadBuffer(gpu_queue, data_mem,
+                                CL_TRUE, 0,
+                                Sizeof.cl_uint*DATA_SIZE*WORDS,
+                                Pointer.to(a), 0, null, null);
+
+                clFinish(gpu_queue);
+                clFinish(cpu_queue);
+
+                for(int l = 0; l &lt; DATA_SIZE*WORDS; l+=WORDS) {
+                        System.out.println("FINAL OUT: "+a[l]+a[l+1]+a[l+2]+a[l+3]);
+                }
+
+        }
+
+        private static void generateSample() {
+                data = new int[] {
+                                1,4,5,0,
+                                1,2,2,0,
+                                1,3,2,1,
+                                1,3,2,4,
+                                1,3,2,6,
+                                7,2,1,0,
+                                1,4,5,3,
+                                1,2,1,0,
+                                2,4,5,0,
+                                2,2,2,0,
+                                2,3,2,1,
+                                2,3,2,4,
+                                7,3,2,6,
+                                7,2,1,0,
+                                7,4,5,3,
+                                1,2,1,0
+                };
+        }
+        private static int log2(int b) {
+                int result = 0;
+                if((b &amp; 0xffff0000) != 0) {
+                        b &gt;&gt;&gt;= 16;
+                        result = 16;
+                }
+                if(b &gt;= 256) {
+                        b &gt;&gt;&gt;= 8;
+                        result += 8;
+                }
+                if(b &gt;= 16) {
+                        b &gt;&gt;&gt;= 4;
+                        result += 4;
+                }
+                if(b &gt;= 4) {
+                        b &gt;&gt;&gt;= 2;
+                        result += 2;
+                }
+                return result + (b &gt;&gt;&gt; 1);
+        }
+}</pre><p>
+</p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-1">(1)</a> </p></td><td valign="top" align="left"><p>
+CPUのデバイスオブジェクトを生成します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-2">(2)</a> </p></td><td valign="top" align="left"><p>
+GPUのデバイスオブジェクトを生成します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-3">(3)</a> </p></td><td valign="top" align="left"><p>
+GPUとCPUのデバイスオブジェクトを配列として宣言します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-4">(4)</a> </p></td><td valign="top" align="left"><p>
+CPUとGPUデバイスからなるコンテキストを生成します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-5">(5)</a> </p></td><td valign="top" align="left"><p>
+GPUデバイスのコマンドキューを生成します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-6">(6)</a> <a href="#CO120-7">(7)</a> </p></td><td valign="top" align="left"><p>
+CPUデバイスのコマンドキューを生成します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-8">(8)</a> </p></td><td valign="top" align="left"><p>
+GPUキューをフラッシュします。これによりCPUキュー実行開始のためにリソースを解放します。シリアルな処理をする場合はclFinishやイベントを使います。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-9">(9)</a> </p></td><td valign="top" align="left"><p>
+CPUキューにコマンドを挿入します。
+</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#CO120-10">(10)</a> </p></td><td valign="top" align="left"><p>
+CPUキューをフラッシュします。シリアルな処理をする場合はclFinishやイベントを使います。
+</p></td></tr></table></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch15s08.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch15.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch16.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+
+
+</wrapper></body></html>

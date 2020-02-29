@@ -1,25 +1,224 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>10.1. アルゴリズムのパラメータ</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch10.html" title="第10章 ヒストグラム" /><link rel="prev" href="ch10.html" title="第10章 ヒストグラム" /><link rel="next" href="ch10s02.html" title="10.2. 共有ローカルメモリ" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>10.1. カーネルプログラミング</title><link rel="stylesheet" type="text/css" href="index.css" /><meta name="generator" content="DocBook XSL Stylesheets V1.79.1" /><link rel="home" href="index.html" title="Java-OpenCL入門" /><link rel="up" href="ch10.html" title="第10章 OpenCL C言語プログラミング" /><link rel="prev" href="ch10.html" title="第10章 OpenCL C言語プログラミング" /><link rel="next" href="ch10s02.html" title="10.2. 組み込みデータ型" /><meta xmlns="" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0" /><script xmlns="" type="text/javascript" src="prettify/prettify.js"></script><link xmlns="" rel="stylesheet" type="text/css" href="prettify/skins/sons-of-obsidian.css" /><script xmlns="">
     window.addEventListener("load", function() {
       PR.prettyPrint();
 	  });	
-	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch10.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch10s02.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_アルゴリズムのパラメータ"></a>10.1. アルゴリズムのパラメータ</h2></div></div></div><p>ヒストグラムの基本アルゴリズムはシングルスレッドでは、シンプルなのですが、GPGPU等を使用したデータ並列プログラミングモデルに適合させると難易度は大半の人が想像される以上に高くなります。</p><p>まずアルゴリズムのパラメータですが、以下の４つを考慮する必要があります。</p><div class="variablelist"><p class="title"><strong>ワークグループ数</strong></p><dl class="variablelist"><dt><span class="term">
-データ数
-</span></dt><dd>
-入力の配列の要素数です。ヒストグラムでは、カテゴリ数 x スレッド数 x ワークグループ数以上の値にします。
-</dd><dt><span class="term">
-カテゴリ（ビン）数
-</span></dt><dd>
-8ビットのデータ（0-255）を使います。注意すべき点として、OpenCL-C言語（Intelプロセッサ環境）と連携するためにバイトオーダーはLittle-Endian（リトル・エンディアン）とします。Javaの入出力クラス（ByteBuffer等）ではビッグ・エンディアンを優先するので、明示的に変更する必要があります。
-</dd><dt><span class="term">
-ローカルサイズ
-</span></dt><dd>
-各ワークグループ内のワークアイテム数です。パフォーマンスをチューニングするために使います。
-</dd><dt><span class="term">
-ワークグループ数
-</span></dt><dd>
-ワークグループ数は、グローバルサイズをローカルサイズで除した数です。
-</dd></dl></div><p>次にマイクロプロセッサ（ここではGPUに限定）のキャッシュサイズと、ベンダーのOpenCL推奨値を調べます。共有ローカルメモリ（SLM）に割り当てるサイズ、ローカルサイズ、ワークグループ数はメモリーの容量によって値をチューニングします。</p><p>検証機のIntel iGPUのSLMのサイズは64KBとなりますが、AMDはCompute Unitに対して32KB-64KB、NVIDIAは16-48KBなどと異なります。ここでは、Intel HD Graphics内臓GPUの推奨値を使います。</p><p>IntelはSLMに最小でも4KBを割り当てるとしているので、4KBxワークグループ数が64KBとなるようにします。するとワークグループ数は16に固定できます。</p><p>最後にローカルサイズ（ワークグループ内のスレッド数）を決定する必要がありますが、これは次の項目で解説します。</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch10s02.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
+	</script><script xmlns="" type="text/javascript" src="script/head.js"></script></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><td width="20%" align="left"><a accesskey="p" href="ch10.html">戻る</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch10s02.html">次へ</a></td></tr></table><hr /></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="_カーネルプログラミング_2"></a>10.1. カーネルプログラミング</h2></div></div></div><p>CPU、FPGA、GPUといったヘテロジニアス・デバイスでプログラムを動作させるにはカーネルと呼ばれる関数をOpenCL C言語で記述する必要があります。このカーネルのコードは</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+sample.cl
+</li></ul></div><p>といったように、clという拡張子のファイルに保管され、OpenCL C言語の文字列を読み込んでホストアプリケーションでビルドまたは、ビルド済みバイナリをロードして実行します。</p><p>OpenCL C言語は、C99(ISO/IEC 9899:1999)規格に準拠します。OpenCL-Cの特徴として、カーネルというホストアプリケーションから直接呼び出すことはできません。ホストアプリケーションはカーネルの実行をコマンドキューに挿入することで間接的な呼び出しが可能となります。</p><p>まず以下のOpenCL C言語で「Hello」と「Hello World!」という文字を出力するカーネル関数を見てみましょう。</p><p><strong>kernel_helloworld.cl. </strong>
+</p><pre xmlns="" class="prettyprint">__kernel void helloworld(__global uchar16* bow)
+{
+        printf("input character array elements are %c%c%c%c%c\n", (*bow).s0, (*bow).s1, (*bow).s2, (*bow).s3, (*bow).s4);
+        printf("char2 vector is %v16c\n", *bow);
+}</pre><p>
+</p><p>このソースコードは例えば、kernel_helloworld.clというファイルに記述することができます。</p><p>注目頂きたい点としては、__kernelという修飾子が関数の導入箇所にあることです。全てのkernel関数はこの修飾子をつける必要があります。</p><p>また戻り値型がvoidとなっていますが、これもカーネル関数の特徴であり、常に戻り値型はvoidとします。最後に引数のbowですが、これはホストアプリケーションの中で、</p><pre xmlns="" class="prettyprint">byte[] message = new byte[] {'h','e','l','l','o',' ','w','o','r','l','d','!'};
+
+cl_mem msg_mem = clCreateBuffer(context,
+        CL_MEM_USE_HOST_PTR,
+        Sizeof.cl_uchar16,
+        Pointer.to(message), null);
+clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(msg_mem));</pre><p>というように文字配列の初期化を行なっています。uchar16というのは、OpenCL C言語の組込みデータ型であり、16の要素を持つ符号なし文字配列を指します。8ビットのため、Javaで対応するのはchar型ではなく、byte型となります。</p><p>この関数の出力は以下のようになります。</p><pre xmlns="" class="prettyprint">input character array elements are hello
+char16 vector is h,e,l,l,o, ,w,o,r,l,d,!,</pre><p>char16という16の要素でなる文字ベクトルである、bowという変数を取り出して「Hello World!」という文字を出力できました。</p><p>ホストアプリケーションのソースコードは以下のようになります。</p><p><strong>kernel_helloworld.java. </strong>
+</p><pre xmlns="" class="prettyprint">package com.book.jocl.kernel;
+
+import static org.jocl.CL.*;
+
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.Scanner;
+
+import org.jocl.Pointer;
+import org.jocl.Sizeof;
+import org.jocl.cl_command_queue;
+import org.jocl.cl_context;
+import org.jocl.cl_device_id;
+import org.jocl.cl_kernel;
+import org.jocl.cl_mem;
+import org.jocl.cl_platform_id;
+import org.jocl.cl_program;
+
+import com.book.jocl.task.TaskTest;
+
+
+public class KernelTest {
+        private static final String KERNEL_PATH = "kernel_helloworld.cl";
+        private static final String FUNC = "helloworld";
+
+        private static void print_error(String src_msg, int err)
+        {
+            final String[] err_msg = new String[]{
+                "CL_SUCCESS",
+                "CL_DEVICE_NOT_FOUND",
+                "CL_DEVICE_NOT_AVAILABLE",
+                "CL_COMPILER_NOT_AVAILABLE",
+                "CL_MEM_OBJECT_ALLOCATION_FAILURE",
+                "CL_OUT_OF_RESOURCES",
+                "CL_OUT_OF_HOST_MEMORY",
+                "CL_PROFILING_INFO_NOT_AVAILABLE",
+                "CL_MEM_COPY_OVERLAP",
+                "CL_IMAGE_FORMAT_MISMATCH",
+                "CL_IMAGE_FORMAT_NOT_SUPPORTED",
+                "CL_BUILD_PROGRAM_FAILURE",
+                "CL_MAP_FAILURE",
+                "CL_MISALIGNED_SUB_BUFFER_OFFSET",
+                "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST",
+                "CL_COMPILE_PROGRAM_FAILURE     ",
+                "CL_LINKER_NOT_AVAILABLE",
+                "CL_LINK_PROGRAM_FAILURE",
+                "CL_DEVICE_PARTITION_FAILED",
+                "CL_KERNEL_ARG_INFO_NOT_AVAILABLE",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "CL_INVALID_VALUE",
+                "CL_INVALID_DEVICE_TYPE",
+                "CL_INVALID_PLATFORM",
+                "CL_INVALID_DEVICE",
+                "CL_INVALID_CONTEXT",
+                "CL_INVALID_QUEUE_PROPERTIES",
+                "CL_INVALID_COMMAND_QUEUE",
+                "CL_INVALID_HOST_PTR",
+                "CL_INVALID_MEM_OBJECT",
+                "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR",
+                "CL_INVALID_IMAGE_SIZE",
+                "CL_INVALID_SAMPLER",
+                "CL_INVALID_BINARY",
+                "CL_INVALID_BUILD_OPTIONS",
+                "CL_INVALID_PROGRAM",
+                "CL_INVALID_PROGRAM_EXECUTABLE",
+                "CL_INVALID_KERNEL_NAME",
+                "CL_INVALID_KERNEL_DEFINITION",
+                "CL_INVALID_KERNEL",
+                "CL_INVALID_ARG_INDEX",
+                "CL_INVALID_ARG_VALUE",
+                "CL_INVALID_ARG_SIZE",
+                "CL_INVALID_KERNEL_ARGS",
+                "CL_INVALID_WORK_DIMENSION",
+                "CL_INVALID_WORK_GROUP_SIZE",
+                "CL_INVALID_WORK_ITEM_SIZE",
+                "CL_INVALID_GLOBAL_OFFSET",
+                "CL_INVALID_EVENT_WAIT_LIST",
+                "CL_INVALID_EVENT",
+                "CL_INVALID_OPERATION",
+                "CL_INVALID_GL_OBJECT",
+                "CL_INVALID_BUFFER_SIZE",
+                "CL_INVALID_MIP_LEVEL",
+                "CL_INVALID_GLOBAL_WORK_SIZE",
+                "CL_INVALID_PROPERTY",
+                "CL_INVALID_IMAGE_DESCRIPTOR",
+                "CL_INVALID_COMPILER_OPTIONS",
+                "CL_INVALID_LINKER_OPTIONS",
+                "CL_INVALID_DEVICE_PARTITION_COUNT",
+            };
+
+            int index = -err;
+
+            if (err != CL_SUCCESS) {
+
+                System.out.printf("Failed Message: %s - Error Code: %d\n", src_msg, err, err_msg[index]);
+                System.exit(-1);
+            }
+
+        }
+
+        public static void main(String[] args) throws Exception
+        {
+                int err;
+
+            /* OpenCL APIの変数 */
+                cl_device_id[] device = new cl_device_id[1];
+                cl_context context;
+                cl_command_queue queue;
+                cl_program program;
+                cl_platform_id[] platform = new cl_platform_id[1];
+                cl_kernel kernel;
+
+                /*
+                 * OpenCLデバイスのプラットフォームの特定
+                 * 最初に見つけたプラットフォームを使用します。
+                 * */
+                err = clGetPlatformIDs(1, platform, null);
+
+                /*
+                 * CPU/GPUデバイスの情報取得をします。
+                 * */
+                err = clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_GPU, 1, device, null);
+                if(err == CL_DEVICE_NOT_FOUND) {
+                  err = clGetDeviceIDs(platform[0], CL_DEVICE_TYPE_CPU, 1, device, null);
+                }
+
+                /* コンテキストの生成をします。 */
+                context = clCreateContext(null, 1, device, null, null, null);
+
+
+                /*
+                 * OpenCL Cのソースコードをファイル（.cl）から
+                 * 読み込みコンパイルします
+                 * */
+
+                /* ファイルを読み込みバッファーに投入します */
+                StringBuffer sb = new StringBuffer();
+                URL resource = KernelTest.class.getResource(KERNEL_PATH);
+                String path = Paths.get(resource.toURI()).toFile().getAbsolutePath();
+                System.out.println(path);
+                Scanner sc = new Scanner(new File(path));
+                while(sc.hasNext()) {
+                        sb.append(sc.nextLine() + "\n");
+                }
+                /* programの生成（ファイルからOpenCL Cソースコードの読み込み） */
+                int[] errPtr = new int[1];
+        program = clCreateProgramWithSource(context,
+                1, new String[]{sb.toString()}, null, errPtr);
+        if(errPtr[0] &lt; 0) {
+                print_error("clCreateProgramWithSource",errPtr[0]);
+        }
+                /* programのビルド（コンパイル）をします。 */
+        err = clBuildProgram(program, 0, null, null, null, null);
+        if(err &lt; 0) {
+                print_error("clBuildProgram",err);
+        }
+
+                /* コマンドキューを生成します */
+                queue = clCreateCommandQueue(context, device[0], 0, null);
+                byte[] message = new byte[] {'h','e','l','l','o',' ','w','o','r','l','d','!'};
+
+                cl_mem msg_mem = clCreateBuffer(context,
+                                CL_MEM_USE_HOST_PTR,
+                                Sizeof.cl_uchar16,
+                                Pointer.to(message), null);
+
+            /* Kernelを生成します */
+                kernel = clCreateKernel(program, FUNC, null);
+
+                err = 0;
+                err |= clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(msg_mem));
+
+            /*
+             * Kernelの実行をします。
+             * */
+                err = clEnqueueTask(queue, kernel, 0, null, null);
+        if(err &lt; 0) {
+                print_error("clEnqueueTask",err);
+        }
+
+            clFinish(queue);
+
+                /* OpenCL APIで割り当てたメモリーを解放します */
+            clReleaseProgram(program);
+            clReleaseKernel(kernel);
+            clReleaseCommandQueue(queue);
+            clReleaseContext(context);
+        }
+}</pre><p>
+</p><p>この例ではchar16というOpenCL-Cのベクトル型が登場しましたが、以降の項目で詳細の解説を行います。</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10.html">戻る</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">上に戻る</a></td><td width="40%" align="right"> <a accesskey="n" href="ch10s02.html">次へ</a></td></tr><tr><td width="40%" align="left" valign="top"> </td><td width="20%" align="center"><a accesskey="h" href="index.html">ホーム</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div><wrapper xmlns=""><p>Copyright 2018-2019, by Masaki Komatsu</p>
 
 
 </wrapper></body></html>
